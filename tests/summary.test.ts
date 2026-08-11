@@ -118,6 +118,46 @@ describe("computeTopicSummary", () => {
     expect(summary.firstUnattemptedOrdinal).toBeNull();
   });
 
+  it("tracks the furthest answered question, skipped ones and all", () => {
+    // The reported case: page 4 holds ordinals 16-20, and 16 then 19 were
+    // answered. Resume must follow 19, not stall on the skipped 17.
+    const summary = computeTopicSummary(
+      inputs({
+        lastAnsweredOrdinal: 19,
+        rows: rows([16, "460830"], [17, "c"], [18, "d"], [19, "460041"], [20, "e"]),
+        statusByGoId: new Map<string, QuestionStatus>([
+          ["460830", "correct"],
+          ["460041", "wrong"],
+        ]),
+      }),
+    );
+
+    expect(summary.lastAnsweredOrdinal).toBe(19);
+    expect(summary.lastAnsweredGoId).toBe("460041");
+    // Still reported, just not used for resume.
+    expect(summary.firstUnattemptedOrdinal).toBe(17);
+  });
+
+  it("prefers the topic's high-water mark when it exceeds the indexed rows", () => {
+    // An answer recorded on a page we have not indexed yet.
+    const summary = computeTopicSummary(
+      inputs({
+        lastAnsweredOrdinal: 40,
+        rows: rows([1, "a"]),
+        statusByGoId: new Map<string, QuestionStatus>([["a", "correct"]]),
+      }),
+    );
+
+    expect(summary.lastAnsweredOrdinal).toBe(40);
+    expect(summary.lastAnsweredGoId).toBeNull();
+  });
+
+  it("reports no last-answered question for an untouched topic", () => {
+    const summary = computeTopicSummary(inputs({ rows: rows([1, "a"], [2, "b"]) }));
+    expect(summary.lastAnsweredOrdinal).toBeNull();
+    expect(summary.lastAnsweredGoId).toBeNull();
+  });
+
   it("treats an unknown question as unattempted rather than throwing", () => {
     const summary = computeTopicSummary(inputs({ rows: rows([1, "never-seen"]) }));
     expect(summary.solvedRows).toBe(0);

@@ -19,6 +19,12 @@ export interface QuestionDescriptor {
   provisional: boolean;
 }
 
+/** A topic anchor on the index page, paired with the slug it points at. */
+export interface TopicLink {
+  element: Element;
+  slug: string;
+}
+
 /** The two links under a question, disambiguated by slug shape. */
 export interface QuestionLinks {
   /** Null on a year page, which never names its own year. */

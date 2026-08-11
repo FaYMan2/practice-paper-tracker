@@ -1,6 +1,6 @@
-/** Types local to page rendering. */
+/** Types shared by the injected UI components. */
 
-import type { QuestionMark } from "../../types";
+import type { QuestionMark } from "../types";
 
 /** How a question should be marked, once the current topic is taken into account. */
 export type MarkerKind = "solved" | "wrong" | "elsewhere";

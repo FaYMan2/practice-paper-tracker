@@ -1,4 +1,4 @@
-/** Shared helpers for the overlay components. */
+/** Shared helpers for building the injected UI. */
 
 /** Creates a detached element, since every component builds one the same way. */
 export function el(

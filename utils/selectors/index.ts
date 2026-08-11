@@ -5,12 +5,14 @@
 
 import * as R from "ramda";
 import {
+  detectPage,
   isYearSlug,
   parseGoId,
   parseOrdinal,
   parsePageNo,
   provisionalKey,
   topicSlugFromHref,
+  topicUrl,
 } from "../url";
 import type { QuestionType, Verdict } from "../../types";
 import {
@@ -27,6 +29,7 @@ import type {
   QuestionDescriptor,
   QuestionLinks,
   SelfCheckIssue,
+  TopicLink,
 } from "./types";
 
 export * from "./constants";
@@ -212,6 +215,31 @@ export function describeQuestion(
 export function describeQuestions(doc: ParentNode, topicSlug: string): QuestionDescriptor[] {
   const described = questionBlocks(doc).map((block) => describeQuestion(block, topicSlug));
   return R.filter(R.isNotNil, described);
+}
+
+function asTopicLink(anchor: Element): TopicLink | null {
+  const slug = topicSlugFromHref(anchor.getAttribute("href") ?? "");
+  // Only question-bearing topics: the same lists also link syllabus pages,
+  // year papers and the other listing pages.
+  if (!slug || detectPage(topicUrl(slug)).kind !== "topic") return null;
+
+  const link: TopicLink = { element: anchor, slug };
+  return link;
+}
+
+/**
+ * Topic links on the index page, de-duplicated by slug — a few topics appear
+ * more than once, and only the first occurrence should carry a badge.
+ */
+export function indexTopicLinks(doc: ParentNode): TopicLink[] {
+  const links = [...doc.querySelectorAll(SEL.indexTopicLink)].map(asTopicLink);
+  const seen = new Set<string>();
+
+  return R.filter(R.isNotNil, links).filter((link) => {
+    if (seen.has(link.slug)) return false;
+    seen.add(link.slug);
+    return true;
+  });
 }
 
 function inspectQuestionBlock(question: Element): BlockInspection {

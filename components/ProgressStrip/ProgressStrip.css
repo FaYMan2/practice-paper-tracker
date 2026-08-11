@@ -1,0 +1,44 @@
+/* The progress header above the question list. */
+
+.pptr.pptr-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #2f6d1a;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  font: 13px/1.5 system-ui, sans-serif;
+}
+
+.pptr.pptr-strip .pptr-strip-label {
+  font-weight: 700;
+  color: #2f6d1a;
+  letter-spacing: 0.02em;
+}
+
+.pptr.pptr-strip .pptr-strip-item {
+  white-space: nowrap;
+}
+
+.pptr.pptr-strip .pptr-strip-item b {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.pptr.pptr-strip .pptr-strip-note {
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Pushes both navigation links to the end of the row. */
+.pptr.pptr-strip .pptr-strip-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}

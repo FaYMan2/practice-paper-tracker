@@ -1,0 +1,16 @@
+/*
+ * Rules that are not owned by a single component.
+ *
+ * Selectors double up the `pptr` namespace class (`.pptr.pptr-x`) throughout
+ * the UI. That is not stylistic: this markup is injected into a WordPress theme
+ * whose own rules target the same elements, and a single class would lose to
+ * something as ordinary as `.entry-content a`.
+ */
+
+/* Marks where a resume link landed, then fades out. */
+.pptr-focus {
+  outline: 3px solid #f59e0b;
+  outline-offset: 6px;
+  border-radius: 3px;
+  transition: outline-color 0.4s ease-out;
+}

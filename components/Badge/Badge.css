@@ -1,0 +1,32 @@
+/* The marker beside a question that has been answered before. */
+
+.pptr.pptr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font: 600 11px/1.7 system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.pptr.pptr-badge.pptr-solved {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.pptr.pptr-badge.pptr-wrong {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+/* Answered under a different topic — the cross-topic case. */
+.pptr.pptr-badge.pptr-elsewhere {
+  color: #b45309;
+  background: #fef3c7;
+}

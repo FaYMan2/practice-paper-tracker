@@ -1,0 +1,32 @@
+/*
+ * The banner for problems the user must act on.
+ *
+ * The one piece of UI whose failure mode is silently losing practice records,
+ * so it pins itself above everything and states every property outright.
+ */
+
+.pptr.pptr-notice {
+  position: fixed;
+  z-index: 2147483647;
+  bottom: 16px;
+  left: 16px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border: 1px solid #7c2d12;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #7c2d12;
+  font: 14px/1.45 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.pptr.pptr-notice .pptr-notice-action {
+  margin-left: 10px;
+  padding: 3px 10px;
+  border: 1px solid #7c2d12;
+  border-radius: 5px;
+  background: #7c2d12;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}

@@ -6,12 +6,17 @@
  * attempt for a question the user never answered.
  */
 
-import { formatDate, pluralize, topicDisplayName } from "../format";
-import { CLS, SEL } from "../selectors";
+import "./Badge.css";
+
+import { formatDate, pluralize, topicDisplayName } from "../../utils/format";
+import { CLS, SEL } from "../../utils/selectors";
 import type { QuestionMark, Verdict } from "../../types";
-import { GLYPH, OVERLAY_CLASS } from "./constants";
-import type { MarkerKind, MarkerView, PaintMarkersInput, PaintTarget } from "./types";
-import { el } from "./util";
+import { UI_CLASS } from "../constants";
+import type { MarkerKind, MarkerView, PaintMarkersInput, PaintTarget } from "../types";
+import { el } from "../util";
+import { GLYPH } from "./constants";
+
+export * from "./constants";
 
 const MARKER_CLASS: Record<MarkerKind, string> = {
   solved: CLS.solved,
@@ -83,11 +88,11 @@ export function describeMarker(
     : describeHere(mark, others);
 }
 
-export function renderBadge(doc: Document, view: MarkerView): HTMLElement {
+export function Badge(doc: Document, view: MarkerView): HTMLElement {
   const badge = el(
     doc,
     "span",
-    `${CLS.ours} ${OVERLAY_CLASS.badge} ${MARKER_CLASS[view.kind]}`,
+    `${CLS.ours} ${UI_CLASS.badge} ${MARKER_CLASS[view.kind]}`,
     `${view.glyph} ${view.label}`,
   );
   badge.title = view.tooltip;
@@ -105,13 +110,13 @@ function paintQuestion(
 
   // Clear first so an unmarked question loses a stale badge, and a repaint
   // replaces rather than stacks.
-  anchor.parentElement?.querySelector(`.${OVERLAY_CLASS.badge}`)?.remove();
+  anchor.parentElement?.querySelector(`.${UI_CLASS.badge}`)?.remove();
 
   const mark = input.marks[target.goId];
   if (!mark) return false;
 
   const view = describeMarker(mark, input.topicSlug, input.topicTitles);
-  anchor.insertAdjacentElement("afterend", renderBadge(doc, view));
+  anchor.insertAdjacentElement("afterend", Badge(doc, view));
   return true;
 }
 

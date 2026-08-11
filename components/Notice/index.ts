@@ -7,31 +7,35 @@
  * indication, so it becomes visible and offers the reload that fixes it.
  */
 
-import { BUTTON_STYLE, NOTICE_ID, NOTICE_STYLE } from "./constants";
+import "./Notice.css";
+
+import { CLS } from "../../utils/selectors";
+import { NOTICE_ID, UI_CLASS } from "../constants";
+import { el } from "../util";
+import { RELOAD_LABEL } from "./constants";
 
 export * from "./constants";
+
+function ReloadButton(doc: Document): HTMLElement {
+  const button = el(doc, "button", UI_CLASS.noticeAction, RELOAD_LABEL);
+  button.setAttribute("type", "button");
+  button.addEventListener("click", () => doc.location.reload());
+  return button;
+}
 
 /** Idempotent: repeated failures update the banner rather than stacking it. */
 export function showNotice(doc: Document, message: string, offerReload = false): void {
   const existing = doc.getElementById(NOTICE_ID);
-  const banner = existing ?? doc.createElement("div");
+  const banner = existing ?? el(doc, "div", `${CLS.ours} ${UI_CLASS.notice}`);
 
   if (!existing) {
     banner.id = NOTICE_ID;
-    banner.setAttribute("style", NOTICE_STYLE);
     banner.setAttribute("role", "status");
     doc.body?.appendChild(banner);
   }
 
-  banner.textContent = message;
-  if (!offerReload) return;
-
-  const reload = doc.createElement("button");
-  reload.type = "button";
-  reload.textContent = "Reload";
-  reload.setAttribute("style", BUTTON_STYLE);
-  reload.addEventListener("click", () => doc.location.reload());
-  banner.appendChild(reload);
+  banner.replaceChildren(message);
+  if (offerReload) banner.appendChild(ReloadButton(doc));
 }
 
 export function hideNotice(doc: Document): void {
