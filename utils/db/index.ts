@@ -12,6 +12,7 @@ import Dexie, { type Table } from "dexie";
 import type {
   AttemptRecord,
   DiagnosticRecord,
+  QuestionMark,
   QuestionRecord,
   RowRecord,
   TopicRecord,
@@ -115,18 +116,44 @@ export async function rebuildQuestionProjections(database: TrackerDB = db()): Pr
   return updates.length;
 }
 
-/** Latest-attempt verdict per question, for callers that only need status. */
-export async function statusByGoId(
+/**
+ * What is known about each of the given questions, for painting a page.
+ *
+ * Unattempted questions are omitted, so the caller can treat presence in the
+ * result as "this has been answered before". `answeredIn` comes from the
+ * attempt log rather than the current topic, which is what lets a page show
+ * that a question was already solved under a different topic.
+ */
+export async function questionMarks(
   goIds: string[],
   database: TrackerDB = db(),
-): Promise<Map<string, Verdict>> {
-  if (goIds.length === 0) return new Map<string, Verdict>();
+): Promise<Map<string, QuestionMark>> {
+  if (goIds.length === 0) return new Map<string, QuestionMark>();
 
-  const found = await database.questions.where(INDEX.questionGoId).anyOf(goIds).toArray();
+  const questions = await database.questions.where(INDEX.questionGoId).anyOf(goIds).toArray();
+  const answered = questions.filter((question) => question.status !== "unattempted");
+  if (answered.length === 0) return new Map<string, QuestionMark>();
+
+  const attempts = await database.attempts
+    .where(INDEX.attemptGoId)
+    .anyOf(answered.map((question) => question.goId))
+    .toArray();
+  const attemptsByGoId = Map.groupBy(attempts, (attempt) => attempt.goId);
+
   return new Map(
-    found
-      .filter((question) => question.status !== "unattempted")
-      .map((question) => [question.goId, question.status as Verdict]),
+    answered.map((question) => {
+      const topics = (attemptsByGoId.get(question.goId) ?? []).map(
+        (attempt) => attempt.topicSlug,
+      );
+      const mark: QuestionMark = {
+        goId: question.goId,
+        status: question.status as Verdict,
+        attemptCount: question.attemptCount,
+        lastAttemptAt: question.lastAttemptAt,
+        answeredIn: [...new Set(topics)],
+      };
+      return [question.goId, mark];
+    }),
   );
 }
 

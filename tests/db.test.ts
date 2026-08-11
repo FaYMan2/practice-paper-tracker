@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { rebuildQuestionProjections, statusByGoId, TrackerDB } from "../utils/db";
+import { questionMarks, rebuildQuestionProjections, TrackerDB } from "../utils/db";
 import type { AttemptInput, QuestionRecord } from "../types";
 
 let db: TrackerDB;
@@ -172,7 +172,7 @@ describe("rebuildQuestionProjections", () => {
   });
 });
 
-describe("statusByGoId", () => {
+describe("questionMarks", () => {
   it("returns only questions that have been answered", async () => {
     await db.attempts.bulkAdd([
       attempt({ goId: "a", verdict: "correct", eventId: "a:1" }),
@@ -191,14 +191,42 @@ describe("statusByGoId", () => {
       firstVerdict: null,
     });
 
-    const statuses = await statusByGoId(["a", "b", "c"], db);
-    expect([...statuses]).toEqual([
-      ["a", "correct"],
-      ["b", "wrong"],
+    const marks = await questionMarks(["a", "b", "c"], db);
+    expect([...marks.keys()].sort()).toEqual(["a", "b"]);
+    expect(marks.get("a")).toMatchObject({ status: "correct", attemptCount: 1 });
+  });
+
+  it("reports every topic a question was answered under", async () => {
+    // The cross-topic case: one question, answered in two different topics.
+    await db.attempts.bulkAdd([
+      attempt({ goId: "523093", eventId: "523093:1", topicSlug: "probability-theory" }),
+      attempt({
+        goId: "523093",
+        eventId: "523093:2",
+        topicSlug: "discrete-mathematics",
+        ts: 2_000,
+      }),
     ]);
+    await rebuildQuestionProjections(db);
+
+    const mark = (await questionMarks(["523093"], db)).get("523093");
+    expect(mark?.answeredIn.sort()).toEqual(["discrete-mathematics", "probability-theory"]);
+    expect(mark?.attemptCount).toBe(2);
+  });
+
+  it("names the other topic when a question was answered only elsewhere", async () => {
+    await db.attempts.add(
+      attempt({ goId: "523142", eventId: "523142:1", topicSlug: "probability-theory" }),
+    );
+    await rebuildQuestionProjections(db);
+
+    const mark = (await questionMarks(["523142"], db)).get("523142");
+    // Viewed under discrete-mathematics, this set excludes the current topic,
+    // which is what makes it render as "solved elsewhere".
+    expect(mark?.answeredIn).toEqual(["probability-theory"]);
   });
 
   it("handles an empty request without touching the database", async () => {
-    expect(await statusByGoId([], db)).toEqual(new Map());
+    expect(await questionMarks([], db)).toEqual(new Map());
   });
 });
