@@ -36,6 +36,8 @@ export const SEL = {
    */
   quizStatus: "div.mtq_quiz_status, [id^='mtq_quiz_status']",
   anchor: "a[href]",
+  /** WordPress page heading, used as the topic's display title. */
+  pageTitle: "h1.entry-title",
   /** Topic index page hierarchy. */
   indexList: "ul.wp-block-list",
 } as const;

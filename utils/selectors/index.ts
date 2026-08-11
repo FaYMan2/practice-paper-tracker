@@ -4,7 +4,14 @@
  */
 
 import * as R from "ramda";
-import { isYearSlug, parseGoId, parseOrdinal, parsePageNo, topicSlugFromHref } from "../url";
+import {
+  isYearSlug,
+  parseGoId,
+  parseOrdinal,
+  parsePageNo,
+  provisionalKey,
+  topicSlugFromHref,
+} from "../url";
 import type { QuestionType, Verdict } from "../../types";
 import {
   ATTR,
@@ -14,7 +21,13 @@ import {
   SelfCheckIssueKind,
   TOTAL_QUESTIONS_PATTERN,
 } from "./constants";
-import type { BlockCheck, BlockInspection, QuestionLinks, SelfCheckIssue } from "./types";
+import type {
+  BlockCheck,
+  BlockInspection,
+  QuestionDescriptor,
+  QuestionLinks,
+  SelfCheckIssue,
+} from "./types";
 
 export * from "./constants";
 export type * from "./types";
@@ -160,6 +173,45 @@ export function lastPageNumber(doc: ParentNode): number {
 export function questionBlocks(doc: ParentNode): Element[] {
   const area = doc.querySelector(SEL.quizArea);
   return [...(area ?? doc).querySelectorAll(SEL.question)];
+}
+
+export function pageTitle(doc: ParentNode): string | null {
+  const text = doc.querySelector(SEL.pageTitle)?.textContent?.trim();
+  return text ? text : null;
+}
+
+/**
+ * Reads one question block into the fields every later phase needs.
+ *
+ * Returns null only when the block can be identified no way at all — no
+ * GateOverflow anchor *and* no parsable ordinal to build a synthetic key from.
+ * Anything else is described, because dropping a solve is unrecoverable.
+ */
+export function describeQuestion(
+  question: Element,
+  topicSlug: string,
+): QuestionDescriptor | null {
+  const ordinal = ordinalForQuestion(question);
+  const goId = goIdForQuestion(question);
+  const fallback = ordinal === null ? null : provisionalKey(topicSlug, ordinal);
+  const identity = goId ?? fallback;
+  if (identity === null) return null;
+
+  const descriptor: QuestionDescriptor = {
+    element: question,
+    goId: identity,
+    ordinal,
+    type: questionType(question),
+    marks: marksForQuestion(question),
+    examSlug: examAndTopicLinks(question).examSlug,
+    provisional: goId === null,
+  };
+  return descriptor;
+}
+
+export function describeQuestions(doc: ParentNode, topicSlug: string): QuestionDescriptor[] {
+  const described = questionBlocks(doc).map((block) => describeQuestion(block, topicSlug));
+  return R.filter(R.isNotNil, described);
 }
 
 function inspectQuestionBlock(question: Element): BlockInspection {

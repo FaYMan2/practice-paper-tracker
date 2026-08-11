@@ -1,6 +1,23 @@
 /** Types local to DOM extraction and the integrity check. */
 
+import type { QuestionType } from "../../types";
 import type { SelfCheckIssueKind } from "./constants";
+
+/**
+ * One question block, read once into the fields every later phase needs.
+ *
+ * `goId` is the GateOverflow id where one exists and a synthetic `pp:` key
+ * where it does not, so a solve is never dropped for want of an identifier.
+ */
+export interface QuestionDescriptor {
+  element: Element;
+  goId: string;
+  ordinal: number | null;
+  type: QuestionType;
+  marks: number;
+  examSlug: string | null;
+  provisional: boolean;
+}
 
 /** The two links under a question, disambiguated by slug shape. */
 export interface QuestionLinks {
