@@ -1,8 +1,9 @@
 /**
  * Content script.
  *
- * Phase 1: harvest every question on the page, then capture answers as they
- * happen. Markers (Phase 2) and resume (Phase 3) land here next.
+ * Phase 1 captured answers; Phase 2 shows them back. On load we paint what is
+ * already known, index what is on screen, then repaint from the refreshed
+ * result. Resume (Phase 3) lands here next.
  */
 
 import { defineContentScript } from "wxt/utils/define-content-script";
@@ -14,9 +15,13 @@ import {
   WRITE_FAILED_MESSAGE,
   showNotice,
 } from "../utils/notice";
-import { questionBlocks, selfCheck } from "../utils/selectors";
+import { injectStyles, paintProgressStrip, paintQuestionMarkers } from "../utils/overlay";
+import { describeQuestions, questionBlocks, selfCheck } from "../utils/selectors";
+import { getSummaries, watchSummaries } from "../utils/summary/mirror";
 import { detectPage } from "../utils/url";
 import type { CaptureFailure, CaptureHandle } from "../utils/capture";
+import type { QuestionDescriptor } from "../utils/selectors";
+import type { TopicSummary } from "../types";
 
 export default defineContentScript({
   matches: ["https://practicepaper.in/*", "https://www.practicepaper.in/*"],
@@ -31,9 +36,17 @@ export default defineContentScript({
     await runSelfCheck();
     if (questionBlocks(document).length === 0) return;
 
+    const topicSlug = page.slug;
     const pageNo = page.pageNo ?? 1;
-    startTracking(page.slug, pageNo);
-    await recordWhatIsOnThisPage(page.slug, pageNo);
+    const questions = describeQuestions(document, topicSlug);
+
+    injectStyles(document);
+    startTracking(topicSlug, pageNo);
+    followProgress(topicSlug);
+
+    // Indexing this page changes the topic's counts, so paint after it lands.
+    await recordWhatIsOnThisPage(topicSlug, pageNo);
+    await paintMarkers(topicSlug, questions);
   },
 });
 
@@ -62,6 +75,48 @@ function startTracking(topicSlug: string, pageNo: number): void {
 
   if (!handle) return;
   console.info("[pptr] capturing", { topicSlug, pageNo, questions: handle.states.size });
+}
+
+/**
+ * Paints the strip from the mirrored summary, then keeps it live. Reading
+ * `storage.local` avoids waiting on a cold service worker, and watching it
+ * means answering a question updates the strip without a reload.
+ */
+function followProgress(topicSlug: string): void {
+  const render = (summaries: Record<string, TopicSummary>): void => {
+    paintProgressStrip(document, summaries[topicSlug] ?? null);
+  };
+
+  void getSummaries().then(render);
+  watchSummaries(render);
+}
+
+async function paintMarkers(
+  topicSlug: string,
+  questions: QuestionDescriptor[],
+): Promise<void> {
+  const goIds = questions.map((question) => question.goId);
+  const [marks, summaries] = await Promise.all([
+    sendToBackground({ kind: MessageKind.GetQuestionMarks, goIds }),
+    getSummaries(),
+  ]);
+
+  if (!marks.ok) {
+    console.warn("[pptr] could not read progress", marks.error);
+    return;
+  }
+
+  const topicTitles = Object.fromEntries(
+    Object.values(summaries).map((summary) => [summary.slug, summary.title]),
+  );
+  const painted = paintQuestionMarkers(document, {
+    questions,
+    marks: marks.data,
+    topicSlug,
+    topicTitles,
+  });
+
+  console.info("[pptr] marked", painted, "of", questions.length);
 }
 
 async function recordWhatIsOnThisPage(topicSlug: string, pageNo: number): Promise<void> {
