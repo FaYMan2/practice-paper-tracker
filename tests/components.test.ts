@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { startCapture } from "../utils/capture";
 import {
-  OVERLAY_CLASS,
   STRIP_ID,
-  injectStyles,
+  UI_CLASS,
   paintProgressStrip,
   paintQuestionMarkers,
-} from "../utils/overlay";
+} from "../components";
 import { formatDate, pluralize, slugToTitle, topicDisplayName } from "../utils/format";
 import { CLS, SEL, describeQuestions } from "../utils/selectors";
 import type { AttemptInput, Message, QuestionMark, TopicSummary } from "../types";
@@ -15,7 +14,6 @@ import { FIXTURES, loadHtml } from "./fixtures";
 
 function mountPage(): { questions: ReturnType<typeof describeQuestions> } {
   document.body.innerHTML = loadHtml(FIXTURES.discreteMathP1).body.innerHTML;
-  injectStyles(document);
   return { questions: describeQuestions(document, "discrete-mathematics") };
 }
 
@@ -44,6 +42,7 @@ function summary(overrides: Partial<TopicSummary> = {}): TopicSummary {
     marksEarned: 14,
     totalMarksFromSite: 600,
     lastAnsweredOrdinal: 12,
+    lastAnsweredGoId: "x0",
     lastVisitedPage: 3,
     firstUnattemptedOrdinal: 13,
     firstUnattemptedGoId: "x",
@@ -52,7 +51,7 @@ function summary(overrides: Partial<TopicSummary> = {}): TopicSummary {
   return { ...base, ...overrides };
 }
 
-const badges = () => [...document.querySelectorAll(`.${OVERLAY_CLASS.badge}`)];
+const badges = () => [...document.querySelectorAll(`.${UI_CLASS.badge}`)];
 const stripText = () => document.getElementById(STRIP_ID)?.textContent ?? "";
 
 beforeEach(() => {
@@ -255,7 +254,7 @@ describe("progress strip", () => {
     paintProgressStrip(document, summary());
     paintProgressStrip(document, summary({ correctRows: 10 }));
 
-    expect(document.querySelectorAll(`.${OVERLAY_CLASS.strip}`)).toHaveLength(1);
+    expect(document.querySelectorAll(`.${UI_CLASS.strip}`)).toHaveLength(1);
     expect(stripText()).toContain("10 correct");
   });
 });
@@ -283,10 +282,22 @@ describe("formatting helpers", () => {
   });
 });
 
-describe("injectStyles", () => {
-  it("adds the stylesheet once", () => {
-    mountPage();
-    injectStyles(document);
-    expect(document.querySelectorAll("#pptr-styles")).toHaveLength(1);
+describe("namespacing", () => {
+  it("gives every injected element the pptr class the stylesheet keys off", () => {
+    // The CSS selectors are all `.pptr.pptr-x`, doubled up so the site's own
+    // theme rules cannot outweigh them. Drop the namespace class and every
+    // component silently loses its styling.
+    const { questions } = mountPage();
+    paintQuestionMarkers(document, {
+      questions,
+      marks: { "523093": mark({ goId: "523093" }) },
+      topicSlug: "discrete-mathematics",
+      topicTitles: {},
+    });
+    paintProgressStrip(document, summary());
+
+    const injected = [...document.querySelectorAll(`.${UI_CLASS.badge}, .${UI_CLASS.strip}`)];
+    expect(injected).toHaveLength(2);
+    expect(injected.every((node) => node.classList.contains(CLS.ours))).toBe(true);
   });
 });

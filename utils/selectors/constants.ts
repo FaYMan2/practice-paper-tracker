@@ -40,6 +40,12 @@ export const SEL = {
   pageTitle: "h1.entry-title",
   /** Topic index page hierarchy. */
   indexList: "ul.wp-block-list",
+  /**
+   * Topic links in the index page's content columns. Scoped to the Gutenberg
+   * lists so the site's own nav menu — which also links to /gate-cse/ pages —
+   * is left alone.
+   */
+  indexTopicLink: "ul.wp-block-list a[href]",
 } as const;
 
 export const CLS = {

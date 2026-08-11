@@ -21,14 +21,16 @@ export * from "./mirror";
 export type * from "./types";
 
 /**
- * Where "resume" points.
+ * The lowest-ordinal question with no attempt.
  *
- * The first *unattempted* question, not the last answered one (already done)
- * and not the furthest scroll (noise from scrolling past ads). With gaps in the
- * index we cannot know the true first unattempted question, so we fall back to
- * just past the furthest answer rather than inventing one.
+ * Note this is *not* where resume points. Skipping a hard question and moving
+ * on is normal, and targeting the first gap would drag you back to it on every
+ * return. It is kept for the dashboard to offer as "next unanswered".
+ *
+ * With gaps in the row index the true first unanswered question is unknowable,
+ * so it estimates just past the furthest answer rather than inventing one.
  */
-function resolveResumeTarget(input: ResumeTargetInputs): ResumeTarget {
+function resolveFirstUnattempted(input: ResumeTargetInputs): ResumeTarget {
   if (input.firstUnattempted) {
     const known: ResumeTarget = {
       ordinal: input.firstUnattempted.ordinal,
@@ -44,6 +46,30 @@ function resolveResumeTarget(input: ResumeTargetInputs): ResumeTarget {
 
   const none: ResumeTarget = { ordinal: null, goId: null };
   return none;
+}
+
+/**
+ * The furthest question answered in this topic — where resume sends you.
+ *
+ * Prefers the highest-ordinal answered row, because that carries the question
+ * id and an id survives the ordinal shift a new exam year causes. Falls back to
+ * the topic record's own high-water mark, which is derived from the attempt log
+ * and so can exceed anything currently indexed.
+ */
+function furthestAnswered(
+  attempted: TopicRowInput[],
+  recordedOrdinal: number | null,
+): ResumeTarget {
+  // `attempted` is already sorted ascending by ordinal.
+  const lastRow = attempted.at(-1) ?? null;
+
+  if (lastRow && (recordedOrdinal === null || lastRow.ordinal >= recordedOrdinal)) {
+    const fromRow: ResumeTarget = { ordinal: lastRow.ordinal, goId: lastRow.goId };
+    return fromRow;
+  }
+
+  const fromRecord: ResumeTarget = { ordinal: recordedOrdinal, goId: null };
+  return fromRecord;
 }
 
 /**
@@ -63,10 +89,11 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
   const attempted = rowsInOrder.filter((row) => statusOf(row) !== "unattempted");
   const correct = attempted.filter((row) => statusOf(row) === "correct");
   const firstUnattempted = rowsInOrder.find((row) => statusOf(row) === "unattempted") ?? null;
+  const lastAnswered = furthestAnswered(attempted, input.lastAnsweredOrdinal);
 
   const indexedRows = rowsInOrder.length;
   const fullyIndexed = input.totalFromSite !== null && indexedRows >= input.totalFromSite;
-  const resume = resolveResumeTarget({
+  const nextUnanswered = resolveFirstUnattempted({
     firstUnattempted,
     fullyIndexed,
     lastAnsweredOrdinal: input.lastAnsweredOrdinal,
@@ -84,10 +111,11 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
     fullyIndexed,
     marksEarned: R.sum(R.pluck("marks", correct)),
     totalMarksFromSite: input.totalMarksFromSite,
-    lastAnsweredOrdinal: input.lastAnsweredOrdinal,
+    lastAnsweredOrdinal: lastAnswered.ordinal,
+    lastAnsweredGoId: lastAnswered.goId,
     lastVisitedPage: input.lastVisitedPage,
-    firstUnattemptedOrdinal: resume.ordinal,
-    firstUnattemptedGoId: resume.goId,
+    firstUnattemptedOrdinal: nextUnanswered.ordinal,
+    firstUnattemptedGoId: nextUnanswered.goId,
     lastActivityAt: input.lastActivityAt,
   };
   return summary;

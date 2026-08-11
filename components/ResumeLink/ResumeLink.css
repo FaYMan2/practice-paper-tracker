@@ -1,0 +1,36 @@
+/*
+ * The navigation pills.
+ *
+ * `text-decoration` and `box-shadow` are stated explicitly because the site's
+ * theme decorates every anchor inside its content area, and these are anchors.
+ */
+
+.pptr.pptr-resume {
+  padding: 4px 12px;
+  border: 1px solid #2f6d1a;
+  border-radius: 999px;
+  background: #2f6d1a;
+  color: #fff;
+  font: 600 12px/1.5 system-ui, sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.pptr.pptr-resume:hover {
+  background: #245614;
+  color: #fff;
+  text-decoration: none;
+}
+
+/* The lesser action: same shape, no fill. */
+.pptr.pptr-resume.pptr-resume-secondary {
+  background: transparent;
+  color: #2f6d1a;
+  border-color: #b6ccae;
+}
+
+.pptr.pptr-resume.pptr-resume-secondary:hover {
+  background: #eaf3e6;
+  color: #245614;
+}
