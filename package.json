@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Tracks GATE CSE PYQ progress on practicepaper.in, which stores nothing beyond the browser session.",
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
