@@ -1,16 +1,14 @@
 /**
- * Per-topic summaries mirrored into `chrome.storage.local`.
+ * Turning stored records into per-topic counts.
  *
- * The content script reads `storage.local` directly, so resume buttons and
- * badges paint without waiting on a cold service worker. IndexedDB stays the
- * source of truth; these are a cache and are always rebuildable from it.
+ * Everything here reads IndexedDB, so it runs in the background worker only.
+ * The content script reads the mirrored result from `./mirror` instead.
  */
 
 import * as R from "ramda";
-import { storage } from "wxt/utils/storage";
 import { db, INDEX, type TrackerDB } from "../db";
 import type { QuestionStatus, TopicSummary } from "../../types";
-import { SUMMARY_STORAGE_ITEM } from "./constants";
+import { mergeSummaries } from "./mirror";
 import type {
   ResumeTarget,
   ResumeTargetInputs,
@@ -19,23 +17,8 @@ import type {
 } from "./types";
 
 export * from "./constants";
+export * from "./mirror";
 export type * from "./types";
-
-const summaryItem = storage.defineItem<Record<string, TopicSummary>>(SUMMARY_STORAGE_ITEM, {
-  fallback: {},
-});
-
-/**
- * Read-modify-write against a single storage key races when two topic tabs
- * report at once, so every write goes through one promise chain.
- */
-let writeChain: Promise<unknown> = Promise.resolve();
-
-function serializeWrite<T>(operation: () => Promise<T>): Promise<T> {
-  const result = writeChain.then(operation, operation);
-  writeChain = result.catch(() => undefined);
-  return result;
-}
 
 /**
  * Where "resume" points.
@@ -110,27 +93,6 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
   return summary;
 }
 
-export async function getSummaries(): Promise<Record<string, TopicSummary>> {
-  return await summaryItem.getValue();
-}
-
-export async function getSummary(slug: string): Promise<TopicSummary | null> {
-  return (await summaryItem.getValue())[slug] ?? null;
-}
-
-async function mergeSummaries(updated: TopicSummary[]): Promise<void> {
-  if (updated.length === 0) return;
-
-  await serializeWrite(async () => {
-    const existing = await summaryItem.getValue();
-    await summaryItem.setValue({ ...existing, ...R.indexBy(R.prop("slug"), updated) });
-  });
-}
-
-export async function putSummary(summary: TopicSummary): Promise<void> {
-  await mergeSummaries([summary]);
-}
-
 /** Computes a topic's summary from IndexedDB without writing it out. */
 export async function buildTopicSummary(
   slug: string,
@@ -150,7 +112,6 @@ export async function buildTopicSummary(
   );
   // `R.pluck` loses the element type on a nullable field, so map explicitly.
   const activity = R.filter(R.isNotNil, questions.map((question) => question.lastAttemptAt));
-  const lastActivityAt = activity.length ? Math.max(...activity) : null;
 
   return computeTopicSummary({
     slug,
@@ -161,7 +122,7 @@ export async function buildTopicSummary(
     lastVisitedPage: topic?.lastVisitedPage ?? null,
     rows: rows.map((row) => ({ ordinal: row.ordinal, goId: row.goId, marks: row.marks })),
     statusByGoId,
-    lastActivityAt,
+    lastActivityAt: activity.length ? Math.max(...activity) : null,
   });
 }
 
@@ -171,7 +132,7 @@ export async function refreshTopicSummary(
   database: TrackerDB = db(),
 ): Promise<TopicSummary | null> {
   const summary = await buildTopicSummary(slug, database);
-  if (summary) await putSummary(summary);
+  if (summary) await mergeSummaries([summary]);
   return summary;
 }
 

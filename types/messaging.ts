@@ -46,8 +46,24 @@ export interface GetSummariesMessage {
   slugs?: string[];
 }
 
-export interface GetStatusesMessage {
-  kind: MessageKind.GetStatuses;
+/**
+ * What we know about one question, for painting it on the page.
+ *
+ * `answeredIn` is the set of topics the question was actually answered under.
+ * Because a GateOverflow id identifies a question rather than a position, that
+ * set can exclude the topic being viewed — which is precisely the
+ * "you already solved this elsewhere" case.
+ */
+export interface QuestionMark {
+  goId: string;
+  status: Verdict;
+  attemptCount: number;
+  lastAttemptAt: number | null;
+  answeredIn: string[];
+}
+
+export interface GetQuestionMarksMessage {
+  kind: MessageKind.GetQuestionMarks;
   goIds: string[];
 }
 
@@ -64,7 +80,7 @@ export type Message =
   | RecordAttemptMessage
   | ObservePageMessage
   | GetSummariesMessage
-  | GetStatusesMessage
+  | GetQuestionMarksMessage
   | ReportDiagnosticMessage
   | RebuildAllMessage;
 
@@ -91,7 +107,7 @@ export interface ResponseMap {
   [MessageKind.RecordAttempt]: RecordAttemptResponse;
   [MessageKind.ObservePage]: ObservePageResponse;
   [MessageKind.GetSummaries]: Record<string, TopicSummary>;
-  [MessageKind.GetStatuses]: Record<string, Verdict>;
+  [MessageKind.GetQuestionMarks]: Record<string, QuestionMark>;
   [MessageKind.ReportDiagnostic]: ReportDiagnosticResponse;
   [MessageKind.RebuildAll]: RebuildAllResponse;
 }

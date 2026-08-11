@@ -10,7 +10,7 @@ export enum MessageKind {
   RecordAttempt = "recordAttempt",
   ObservePage = "observePage",
   GetSummaries = "getSummaries",
-  GetStatuses = "getStatuses",
+  GetQuestionMarks = "getQuestionMarks",
   ReportDiagnostic = "reportDiagnostic",
   RebuildAll = "rebuildAll",
 }

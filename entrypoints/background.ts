@@ -10,7 +10,13 @@
 
 import { defineBackground } from "wxt/utils/define-background";
 import { browser } from "wxt/browser";
-import { db, INDEX, rebuildQuestionProjections, recordDiagnostic } from "../utils/db";
+import {
+  db,
+  INDEX,
+  questionMarks,
+  rebuildQuestionProjections,
+  recordDiagnostic,
+} from "../utils/db";
 import { getSummaries, refreshAllSummaries, refreshTopicSummary } from "../utils/summary";
 import { MessageKind } from "../utils/messaging";
 import type {
@@ -20,7 +26,6 @@ import type {
   QuestionRecord,
   ResponseMap,
   TopicSummary,
-  Verdict,
 } from "../types";
 
 export default defineBackground(() => {
@@ -50,8 +55,8 @@ async function handle(message: Message): Promise<unknown> {
     case MessageKind.GetSummaries:
       return await summariesFor(message.slugs);
 
-    case MessageKind.GetStatuses:
-      return await getStatuses(message.goIds);
+    case MessageKind.GetQuestionMarks:
+      return Object.fromEntries(await questionMarks(message.goIds));
 
     case MessageKind.ReportDiagnostic: {
       await recordDiagnostic(message.entry);
@@ -220,17 +225,6 @@ async function observePage(page: PageObservation): Promise<ResponseMap[MessageKi
   await refreshTopicSummary(page.topicSlug);
   const observed: ResponseMap[MessageKind.ObservePage] = { rows: page.rows.length };
   return observed;
-}
-
-async function getStatuses(goIds: string[]): Promise<ResponseMap[MessageKind.GetStatuses]> {
-  if (goIds.length === 0) return {};
-
-  const found = await db().questions.where(INDEX.questionGoId).anyOf(goIds).toArray();
-  return Object.fromEntries(
-    found
-      .filter((question) => question.status !== "unattempted")
-      .map((question) => [question.goId, question.status as Verdict]),
-  );
 }
 
 function isConstraintError(error: unknown): boolean {

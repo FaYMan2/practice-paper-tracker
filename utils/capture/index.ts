@@ -145,24 +145,33 @@ export function startCapture(doc: Document, options: CaptureOptions): CaptureHan
     options.onSendFailure?.({ reason: result.reason, error: result.error });
   }
 
+  /** The verdict a single class change represents, or null when it is noise. */
+  function verdictFromRecord(record: MutationRecord): Verdict | null {
+    const target = record.target;
+    if (!(target instanceof Element) || !target.matches(SEL.stamp)) return null;
+
+    const className = target.getAttribute("class") ?? "";
+    // Our own repaints must not read as fresh verdicts.
+    if (isOwnMutation(className, record.oldValue)) return null;
+
+    return stampVerdict(className, record.oldValue);
+  }
+
+  function handleMutation(record: MutationRecord): void {
+    const verdict = verdictFromRecord(record);
+    if (!verdict) return;
+
+    const state = stateFor(record.target as Element);
+    // Marking resolved here, before the next record is handled, is what makes
+    // the several MutationRecords of one logical stamp collapse into one attempt.
+    if (!state || state.resolved) return;
+
+    state.resolved = true;
+    void submit(state, verdict);
+  }
+
   function onMutations(records: MutationRecord[]): void {
-    for (const record of records) {
-      const target = record.target;
-      if (!(target instanceof Element) || !target.matches(SEL.stamp)) continue;
-
-      const className = target.getAttribute("class") ?? "";
-      // Our own repaints must not read as fresh verdicts.
-      if (isOwnMutation(className, record.oldValue)) continue;
-
-      const verdict = stampVerdict(className, record.oldValue);
-      if (!verdict) continue;
-
-      const state = stateFor(target);
-      if (!state || state.resolved) continue;
-
-      state.resolved = true;
-      void submit(state, verdict);
-    }
+    records.forEach(handleMutation);
   }
 
   const observer = new MutationObserver(onMutations);
