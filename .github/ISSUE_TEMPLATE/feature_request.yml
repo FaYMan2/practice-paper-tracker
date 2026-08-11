@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest something the tracker should do
+title: "[Feature] "
+labels: ["Feature request"]
+assignees: ["FaYMan2"]
+
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: >
+        Describe the problem rather than the solution. The site has enough
+        quirks that the obvious fix is often not the right one.
+      placeholder: I keep losing track of which questions I got wrong last week...
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: How do you imagine it working?
+      description: Optional. A rough sketch is fine.
+    validations:
+      required: false
+
+  - type: input
+    id: pages
+    attributes:
+      label: Which pages does this affect?
+      placeholder: /gate-cse/discrete-mathematics?page_no=4
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Would you like to build it?
+      options:
+        - label: I'd like to work on this myself
+          required: false
