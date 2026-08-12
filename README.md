@@ -28,6 +28,8 @@ The same question often appears under several topics: something in `probability-
 
 This works because every question on the site carries a GateOverflow link, and that id is stable across topics. No text matching, no heuristics.
 
+It also feeds the numbers. The site labels every question with the other topic it's filed under — a probability question listed on the Discrete Mathematics page says so beneath itself — so solving it there counts towards Probability Theory too, and that topic shows real progress before you've ever opened one of its pages.
+
 ### A progress strip that isn't broken
 
 Above each question list: attempted, correct, wrong and marks for *that* topic, updating live as you answer. It replaces the site's counters, which are shared across topics and drift as soon as you switch.
@@ -44,6 +46,16 @@ Both appear on the progress strip and beside each topic on the index page:
 They're the same until you skip a hard question, and then they aren't: resume keeps pointing at the gap while your real progress moves on. Both are useful, so both are offered.
 
 Either one opens the right page and scrolls to the question, briefly outlining it so you can see where you landed.
+
+### A dashboard for the whole syllabus
+
+Click the toolbar icon for a card per subject — a ring showing how much of it is done and how it went, plus attempted, accuracy, marks and when you last touched it. Above them, your overall numbers and a chart of accuracy by subject, weakest first, which is the one thing a revision plan actually needs.
+
+Open a subject and its topics come up in a dialog with the same figures each, plus resume links. Expand a topic to list its questions with status and attempt count, filter to just the ones you got wrong, and click any of them to open that exact question on the site.
+
+The subject hierarchy is scraped from the site's own topic-wise page, so it matches how the syllabus is organised. Visit that page once and every topic appears, including the ones you've never opened — the dashboard shows what's left, not only what you've started.
+
+Totals add up subjects only, never a subject *and* its topics: `/gate-cse/data-structure` serves every question `stack` serves, so adding both would count each answer twice.
 
 ### It tells you when it breaks
 
@@ -86,8 +98,6 @@ Bear in mind it lives in your browser profile, so clearing extension data or wip
 
 Roughly in order:
 
-**Dashboard** — an extension page with every topic's accuracy and coverage, grouped by parent subject, with drill-down into individual questions.
-
 **Coverage crawl** — an opt-in, per-topic background pass that fills in the questions you haven't browsed yet, so counts stop being a floor.
 
 **Manual starring** — flag questions to revisit, independently of whether you got them right.
@@ -129,16 +139,19 @@ A few things in the code look odd and are load-bearing. Worth knowing so a revie
 - **Never write the site's `mtq_correct_stamp` / `mtq_wrong_stamp` classes.** The capture observer watches those, so painting them records a phantom attempt for a question nobody answered. Our classes are namespaced `pptr-`.
 - **Never derive a verdict yourself.** The site already implements the MSQ countdown and the NAT range check. Read its stamp instead of reimplementing them.
 - **The database belongs to the background worker.** IndexedDB opened from a content script lives in practicepaper.in's origin, where the extension's own pages can't reach it. Content scripts message the background; they never write directly.
+- **React stops at the dashboard.** The content script is plain DOM on purpose: it is injected into someone else's page and every kilobyte is paid on each page load. The dashboard is our own page and a real application, so it gets React and its charts — and none of that ships to the site.
 - **Every DOM assumption lives in `utils/selectors`.** Add selectors there, not inline, and extend `selfCheck` when you add one worth monitoring.
 
 ### Layout
 
 ```
-entrypoints/    registration only — background worker and content script
+entrypoints/    registration only — background worker, content script, dashboard
 services/
   messages/     one file per message the background handles
   page/         one file per thing that happens on a page
+  dashboard/    what the dashboard page shows and does
 components/     injected UI, one folder per component with its own stylesheet
+  dashboard/    the dashboard's own UI — React, never imported by a content script
 utils/          selectors, url parsing, capture, database, summaries, resume
 types/          shared domain types
 tests/          vitest, run against real saved pages in tests/fixtures
@@ -158,8 +171,11 @@ Two contexts that can't share memory:
 │  reads the DOM, watches answers├────────►│  owns IndexedDB, only writer  │
 │  reads storage.local (fast)    │         │  projects → storage.local     │
 └────────────────────────────────┘         └───────────────────────────────┘
-            ▲                                            │
-            └──────────── chrome.storage.local ◄─────────┘
+            ▲                                     ▲      │
+            │                            message  │      │
+            │                  ┌─ dashboard page ─┴──┐   │
+            │                  │  reads only         │   │
+            └──── chrome.storage.local ──────────────┴───┘
 ```
 
 The split is forced rather than stylistic: an IndexedDB opened from a content script belongs to practicepaper.in's origin partition, so the extension's own pages could never read it. And since MV3 kills the background worker after ~30 seconds idle, waking it on every page load would be slow — hence the `storage.local` mirror, which the content script reads directly for anything small enough to cache.
@@ -170,4 +186,4 @@ When you answer, a capture-phase click listener records *what* you picked, then 
 
 ## Built with
 
-[WXT](https://wxt.dev) · [Dexie](https://dexie.org) · [Ramda](https://ramdajs.com) · [Vitest](https://vitest.dev) · TypeScript
+[WXT](https://wxt.dev) · [Dexie](https://dexie.org) · [Ramda](https://ramdajs.com) · [React](https://react.dev) · [Recharts](https://recharts.org) · [Vitest](https://vitest.dev) · TypeScript
