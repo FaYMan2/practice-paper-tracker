@@ -1,0 +1,35 @@
+/*
+ * The page frame.
+ *
+ * The theme is imported here rather than from the barrel, so anything that
+ * renders the app gets the tokens with it.
+ */
+
+@import "../theme.css";
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 30px 22px 72px;
+}
+
+.page-head {
+  margin-bottom: 22px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.page-loading {
+  color: var(--muted);
+  font-style: italic;
+}

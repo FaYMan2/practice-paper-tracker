@@ -11,9 +11,14 @@
 import { defineBackground } from "wxt/utils/define-background";
 import { browser } from "wxt/browser";
 import { handleMessage } from "../services/messages";
+import { openDashboard } from "../services/toolbar";
 import type { Message } from "../types";
 
 export default defineBackground(() => {
+  browser.action.onClicked.addListener(() => {
+    void openDashboard();
+  });
+
   browser.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
     const message = raw as Message;
 

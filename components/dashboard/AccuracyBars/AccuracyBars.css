@@ -1,0 +1,12 @@
+/* Accuracy per subject, weakest first. */
+
+.bars {
+  width: 100%;
+  min-height: 80px;
+}
+
+.bars-empty {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}

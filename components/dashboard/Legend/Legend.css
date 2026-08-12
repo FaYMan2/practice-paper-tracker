@@ -1,0 +1,32 @@
+/* What the three colours mean. */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.legend-dot {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-value {
+  font-weight: 700;
+}
+
+.legend-label {
+  color: var(--muted);
+  font-size: 12px;
+}

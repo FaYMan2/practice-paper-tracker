@@ -1,0 +1,91 @@
+/* The topics of one subject. */
+
+.table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.table-entry + .table-entry {
+  border-top: 1px solid var(--line);
+}
+
+.row {
+  display: grid;
+  /* Fixed tracks, not content-sized ones: each row is its own grid, so an
+     `auto` column would let a row with one button shift its neighbours' bars
+     out of line with everyone else's. */
+  grid-template-columns: minmax(0, 1.2fr) 120px minmax(0, 2.4fr) 200px;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 9px 16px;
+}
+
+.row:hover {
+  background: var(--raised);
+}
+
+/* The subject's own page, which heads the list. */
+.row-whole {
+  background: var(--raised);
+  font-weight: 600;
+}
+
+.row-open {
+  background: var(--accent-soft);
+}
+
+.row-name {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.row-name:hover {
+  color: var(--accent);
+}
+
+.row-caret {
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.row-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.row-figure b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.row-quiet {
+  color: var(--faint);
+  font-style: italic;
+}
+
+.row-note {
+  color: #b45309;
+  font-style: italic;
+  cursor: help;
+}
+
+@media (max-width: 860px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}
