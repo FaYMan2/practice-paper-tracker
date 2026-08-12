@@ -1,0 +1,64 @@
+/*
+ * Page-level styling for the dashboard.
+ *
+ * Unlike the injected UI, this owns the whole document, so the tokens and the
+ * base rules live here and each component styles only itself.
+ */
+
+:root {
+  --ink: #1c1917;
+  --muted: #78716c;
+  --faint: #a8a29e;
+  --line: #e7e5e4;
+  --surface: #ffffff;
+  --page: #f7f7f5;
+  --raised: #fafaf9;
+
+  --accent: #c15f3c;
+  --accent-soft: #fdf0ea;
+  --correct: #15803d;
+  --correct-soft: #dcfce7;
+  --wrong: #dc2626;
+  --wrong-soft: #fee2e2;
+  --left: #d6d3d1;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Figures line up in columns, which is most of what makes a table readable. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The small uppercase caption under every figure. */
+.caption {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

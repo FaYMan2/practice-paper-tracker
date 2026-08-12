@@ -1,0 +1,105 @@
+/* The questions inside one topic. */
+
+.panel {
+  padding: 12px 18px 16px 34px;
+  background: var(--raised);
+  border-top: 1px solid var(--line);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.filter {
+  padding: 3px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter:hover {
+  border-color: var(--faint);
+}
+
+.filter-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.questions {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  /*
+   * Deliberately not its own scroll area. A scrollable list inside a
+   * scrollable dialog means the wheel does one of two things depending on
+   * where the pointer happens to be; one scrollbar for the whole dialog is
+   * easier to use even when a topic runs to hundreds of questions.
+   */
+  list-style: none;
+}
+
+.question {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f1efed;
+}
+
+.question:last-child {
+  border-bottom: none;
+}
+
+.question-ordinal {
+  min-width: 52px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.question-ordinal:hover {
+  text-decoration: underline;
+}
+
+.question-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pill {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pill-correct {
+  background: var(--correct-soft);
+  color: var(--correct);
+}
+
+.pill-wrong {
+  background: var(--wrong-soft);
+  color: var(--wrong);
+}
+
+.pill-unattempted {
+  background: #ede9e6;
+  color: #57534e;
+}
+
+.panel-empty {
+  margin: 0;
+  padding: 12px 18px 16px 34px;
+  color: var(--muted);
+  font-style: italic;
+}

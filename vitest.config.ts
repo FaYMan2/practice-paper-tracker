@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "happy-dom",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     environmentOptions: {
       happyDOM: {
         // The fixtures are real pages carrying ad and analytics tags. Without

@@ -1,0 +1,94 @@
+/* One subject, opened. */
+
+.dialog {
+  width: min(1080px, 92vw);
+  max-height: 88vh;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 60px rgba(28, 25, 23, 0.22);
+}
+
+.dialog::backdrop {
+  background: rgba(28, 25, 23, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.dialog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 88vh;
+  padding: 20px 22px 24px;
+  overflow-y: auto;
+}
+
+/*
+ * Without this the children shrink to fit instead of overflowing, so the panel
+ * never becomes scrollable — and the topic table, which clips its own overflow
+ * to keep its rounded corners, simply cuts the last rows off with no way to
+ * reach them.
+ */
+.dialog-panel > * {
+  flex: 0 0 auto;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.dialog-sub {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dialog-close {
+  padding: 5px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dialog-close:hover {
+  border-color: var(--faint);
+  color: var(--ink);
+}
+
+.dialog-summary {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+}
+
+.dialog-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dialog-empty {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
