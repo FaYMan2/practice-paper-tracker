@@ -18,7 +18,7 @@ import type {
   TopicRecord,
   Verdict,
 } from "../../types";
-import { DB_NAME, DIAGNOSTIC_LIMIT, INDEX, SCHEMA_V1 } from "./constants";
+import { DB_NAME, DIAGNOSTIC_LIMIT, INDEX, SCHEMA_V1, SCHEMA_V2, TableName } from "./constants";
 
 export * from "./constants";
 
@@ -32,6 +32,20 @@ export class TrackerDB extends Dexie {
   constructor(name: string = DB_NAME) {
     super(name);
     this.version(1).stores(SCHEMA_V1);
+    this.version(2)
+      .stores(SCHEMA_V2)
+      // Rows written before this version carry no `relatedSlugs`, and a
+      // multi-entry index skips a missing field entirely. Backfilling an empty
+      // array keeps every row addressable; revisiting a page fills in the real
+      // labels.
+      .upgrade(async (tx) => {
+        await tx
+          .table<RowRecord>(TableName.Rows)
+          .toCollection()
+          .modify((row) => {
+            row.relatedSlugs ??= [];
+          });
+      });
   }
 }
 

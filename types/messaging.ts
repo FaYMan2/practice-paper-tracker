@@ -8,8 +8,9 @@
 import type { MessageKind } from "../utils/messaging/constants";
 import type { AttemptInput } from "./attempt";
 import type { DiagnosticRecord } from "./diagnostic";
-import type { QuestionType, Verdict } from "./question";
+import type { QuestionStatus, QuestionType, Verdict } from "./question";
 import type { TopicSummary } from "./summary";
+import type { TopicHierarchyEntry } from "./topic";
 
 /** One question as seen on a page, whether or not it was answered. */
 export interface ObservedRow {
@@ -18,6 +19,8 @@ export interface ObservedRow {
   examSlug: string | null;
   type: QuestionType;
   marks: number;
+  /** Topics the site files this question under, besides the page it is on. */
+  relatedSlugs: string[];
 }
 
 /** Everything harvested from a single page load. */
@@ -67,6 +70,61 @@ export interface GetQuestionMarksMessage {
   goIds: string[];
 }
 
+/**
+ * One indexed question of a topic, as the dashboard drill-down lists it.
+ *
+ * Row and question are joined here: `ordinal`, `examSlug` and `marks` describe
+ * the placement, while `status` and the attempt fields describe the question
+ * itself and so are shared with every other topic it appears under.
+ */
+export interface TopicQuestionRow {
+  ordinal: number;
+  /**
+   * The topic whose page this row was seen on, which is not always the topic
+   * being listed: the site files a question under two topics and we only ever
+   * see it under one of them. `ordinal` belongs to *this* slug's numbering, so
+   * every link must be built from the pair.
+   */
+  topicSlug: string;
+  goId: string;
+  examSlug: string | null;
+  type: QuestionType;
+  marks: number;
+  status: QuestionStatus;
+  attemptCount: number;
+  lastAttemptAt: number | null;
+  firstVerdict: Verdict | null;
+  /** True when identity fell back to a synthetic key, so it cannot cross topics. */
+  provisional: boolean;
+}
+
+export interface TopicDetail {
+  slug: string;
+  /** Ascending by ordinal. Only questions seen on a visited page appear. */
+  rows: TopicQuestionRow[];
+}
+
+/**
+ * Asks the background to compute every topic's figures from IndexedDB.
+ *
+ * The dashboard runs on an extension page, so unlike a content script it has
+ * no reason to settle for the `storage.local` mirror: it asks for the real
+ * numbers and can never show a cache that drifted.
+ */
+export interface GetDashboardMessage {
+  kind: MessageKind.GetDashboard;
+}
+
+export interface GetTopicDetailMessage {
+  kind: MessageKind.GetTopicDetail;
+  slug: string;
+}
+
+export interface ReportHierarchyMessage {
+  kind: MessageKind.ReportHierarchy;
+  entries: TopicHierarchyEntry[];
+}
+
 export interface ReportDiagnosticMessage {
   kind: MessageKind.ReportDiagnostic;
   entry: Omit<DiagnosticRecord, "id">;
@@ -81,6 +139,9 @@ export type Message =
   | ObservePageMessage
   | GetSummariesMessage
   | GetQuestionMarksMessage
+  | GetDashboardMessage
+  | GetTopicDetailMessage
+  | ReportHierarchyMessage
   | ReportDiagnosticMessage
   | RebuildAllMessage;
 
@@ -97,6 +158,11 @@ export interface ReportDiagnosticResponse {
   ok: true;
 }
 
+/** How many topic rows the scraped hierarchy touched. */
+export interface ReportHierarchyResponse {
+  topics: number;
+}
+
 export interface RebuildAllResponse {
   questions: number;
   topics: number;
@@ -108,6 +174,9 @@ export interface ResponseMap {
   [MessageKind.ObservePage]: ObservePageResponse;
   [MessageKind.GetSummaries]: Record<string, TopicSummary>;
   [MessageKind.GetQuestionMarks]: Record<string, QuestionMark>;
+  [MessageKind.GetDashboard]: Record<string, TopicSummary>;
+  [MessageKind.GetTopicDetail]: TopicDetail;
+  [MessageKind.ReportHierarchy]: ReportHierarchyResponse;
   [MessageKind.ReportDiagnostic]: ReportDiagnosticResponse;
   [MessageKind.RebuildAll]: RebuildAllResponse;
 }

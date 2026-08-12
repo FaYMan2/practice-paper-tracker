@@ -13,6 +13,7 @@ function summary(slug: string, overrides: Partial<TopicSummary> = {}): TopicSumm
   const base: TopicSummary = {
     slug,
     title: null,
+    parentSlug: null,
     solvedRows: 12,
     correctRows: 9,
     wrongRows: 3,

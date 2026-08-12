@@ -8,11 +8,13 @@
 import { MessageKind } from "../../utils/messaging";
 import type { Message } from "../../types";
 import { recordAttempt } from "./attempts";
+import { topicDetail } from "./details";
 import { reportDiagnostic } from "./diagnostics";
+import { recordHierarchy } from "./hierarchy";
 import { rebuildAll } from "./maintenance";
 import { getQuestionMarks } from "./marks";
 import { observePage } from "./pages";
-import { summariesFor } from "./summaries";
+import { dashboardSummaries, summariesFor } from "./summaries";
 
 export * from "./constants";
 
@@ -29,6 +31,15 @@ export async function handleMessage(message: Message): Promise<unknown> {
 
     case MessageKind.GetQuestionMarks:
       return await getQuestionMarks(message.goIds);
+
+    case MessageKind.GetDashboard:
+      return await dashboardSummaries();
+
+    case MessageKind.GetTopicDetail:
+      return await topicDetail(message.slug);
+
+    case MessageKind.ReportHierarchy:
+      return await recordHierarchy(message.entries);
 
     case MessageKind.ReportDiagnostic:
       return await reportDiagnostic(message.entry);

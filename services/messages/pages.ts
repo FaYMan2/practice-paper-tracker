@@ -1,7 +1,7 @@
 /** Indexing the questions on a page, answered or not. */
 
 import { db, INDEX } from "../../utils/db";
-import { refreshTopicSummary } from "../../utils/summary";
+import { refreshSummariesFor } from "../../utils/summary";
 import type { MessageKind } from "../../utils/messaging";
 import type {
   ObservedRow,
@@ -20,6 +20,7 @@ function toRowRecord(topicSlug: string, row: ObservedRow, now: number): RowRecor
     examSlug: row.examSlug,
     type: row.type,
     marks: row.marks,
+    relatedSlugs: row.relatedSlugs,
     lastSeenAt: now,
   };
   return record;
@@ -91,7 +92,12 @@ export async function observePage(
     },
   );
 
-  await refreshTopicSummary(page.topicSlug);
+  // Not just this page's topic: each question is also filed under a child
+  // topic, and its figures change the moment this page is indexed.
+  await refreshSummariesFor([
+    page.topicSlug,
+    ...page.rows.flatMap((row) => row.relatedSlugs),
+  ]);
   const observed: ResponseMap[MessageKind.ObservePage] = { rows: page.rows.length };
   return observed;
 }

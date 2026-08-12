@@ -16,6 +16,8 @@ export interface QuestionDescriptor {
   type: QuestionType;
   marks: number;
   examSlug: string | null;
+  /** Other topics the site files this question under, from its own links. */
+  relatedSlugs: string[];
   provisional: boolean;
 }
 

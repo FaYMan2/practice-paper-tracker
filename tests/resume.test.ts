@@ -16,6 +16,7 @@ function summary(overrides: Partial<TopicSummary> = {}): TopicSummary {
   const base: TopicSummary = {
     slug: "data-structure",
     title: "Data Structure",
+    parentSlug: null,
     solvedRows: 12,
     correctRows: 9,
     wrongRows: 3,

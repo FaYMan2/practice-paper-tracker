@@ -19,7 +19,27 @@ export interface RowRecord {
   examSlug: string | null;
   type: QuestionType;
   marks: number;
+  /**
+   * The other topics this question is filed under, as the site itself labels
+   * it beneath the question. A parent page names the child topic, a child page
+   * names the parent subject, and a year page names both — which is what lets
+   * a topic show progress from questions answered on a page other than its own.
+   */
+  relatedSlugs: string[];
   lastSeenAt: number;
+}
+
+/**
+ * One topic's place in the subject hierarchy, as scraped from the index page.
+ *
+ * `parentSlug` is null both for a subject and for a topic whose group heading
+ * carries no link of its own — "Only For ISRO CSE" is a bare `<strong>`, so its
+ * children genuinely have no parent topic to belong to.
+ */
+export interface TopicHierarchyEntry {
+  slug: string;
+  title: string | null;
+  parentSlug: string | null;
 }
 
 export interface TopicRecord {

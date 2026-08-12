@@ -9,6 +9,8 @@
 export interface TopicSummary {
   slug: string;
   title: string | null;
+  /** The subject this topic sits under, once the index page has been scraped. */
+  parentSlug: string | null;
   /** Rows whose question is solved — the same unit as `totalFromSite`. */
   solvedRows: number;
   correctRows: number;

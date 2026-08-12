@@ -11,6 +11,9 @@ export enum MessageKind {
   ObservePage = "observePage",
   GetSummaries = "getSummaries",
   GetQuestionMarks = "getQuestionMarks",
+  GetTopicDetail = "getTopicDetail",
+  GetDashboard = "getDashboard",
+  ReportHierarchy = "reportHierarchy",
   ReportDiagnostic = "reportDiagnostic",
   RebuildAll = "rebuildAll",
 }

@@ -14,9 +14,14 @@ export const DEFAULT_ORIGIN = "https://practicepaper.in";
 
 export const SECTION_PREFIX = "/gate-cse/";
 
+/** The one page that states which subject each topic belongs to. */
+export const TOPIC_INDEX_SLUG = "topic-wise-practice-of-gate-cse-previous-year-papers";
+
+export const INDEX_PAGE_URL = `${DEFAULT_ORIGIN}${SECTION_PREFIX}${TOPIC_INDEX_SLUG}`;
+
 /** Listing pages that carry no questions of their own. */
 export const INDEX_SLUGS: ReadonlySet<string> = new Set([
-  "topic-wise-practice-of-gate-cse-previous-year-papers",
+  TOPIC_INDEX_SLUG,
   "gate-cse-subject-wise-questions",
   "gate-cse-year-wise-questions",
 ]);
