@@ -8,6 +8,7 @@
  */
 
 import * as R from "ramda";
+import { cleanTopicTitle } from "../format";
 import {
   describeQuestions,
   pageTitle,
@@ -17,7 +18,18 @@ import {
 import type { QuestionDescriptor } from "../selectors";
 import type { ObservedRow, PageObservation } from "../../types";
 
-function toObservedRow(descriptor: QuestionDescriptor): ObservedRow | null {
+/**
+ * The topics the site files this question under, other than the page we are
+ * on. On a topic page that is the chapter link beneath the question — a
+ * Probability Theory question listed on the Discrete Mathematics page says so
+ * itself — which is how progress reaches a topic whose own pages have never
+ * been opened.
+ */
+function relatedSlugsFor(descriptor: QuestionDescriptor, topicSlug: string): string[] {
+  return descriptor.relatedSlugs.filter((slug) => slug !== topicSlug);
+}
+
+function toObservedRow(descriptor: QuestionDescriptor, topicSlug: string): ObservedRow | null {
   // A row is a position within a topic, so one without an ordinal has no
   // position to record. The question itself is still captured on answer.
   if (descriptor.ordinal === null) return null;
@@ -28,6 +40,7 @@ function toObservedRow(descriptor: QuestionDescriptor): ObservedRow | null {
     examSlug: descriptor.examSlug,
     type: descriptor.type,
     marks: descriptor.marks,
+    relatedSlugs: relatedSlugsFor(descriptor, topicSlug),
   };
   return row;
 }
@@ -37,11 +50,13 @@ export function observePage(
   topicSlug: string,
   pageNo: number,
 ): PageObservation {
-  const rows = describeQuestions(doc, topicSlug).map(toObservedRow);
+  const rows = describeQuestions(doc, topicSlug).map((descriptor) =>
+    toObservedRow(descriptor, topicSlug),
+  );
 
   const observation: PageObservation = {
     topicSlug,
-    title: pageTitle(doc),
+    title: cleanTopicTitle(pageTitle(doc)),
     pageNo,
     // Re-read every visit: both totals grow as each new exam year is added.
     totalFromSite: totalQuestionsFromStatus(doc),

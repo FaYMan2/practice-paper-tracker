@@ -2,7 +2,7 @@
 
 export const DB_NAME = "practice-paper-tracker";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export enum TableName {
   Questions = "questions",
@@ -28,12 +28,24 @@ export const SCHEMA_V1: Record<TableName, string> = {
   [TableName.Diagnostics]: "++id, ts, kind",
 };
 
+/**
+ * Adds `*relatedSlugs`, the multi-entry index behind cross-topic attribution:
+ * a question answered on the Discrete Mathematics page is labelled
+ * "Probability Theory" by the site, and this is what lets Probability Theory
+ * find it without its own pages ever having been opened.
+ */
+export const SCHEMA_V2: Pick<Record<TableName, string>, TableName.Rows> = {
+  [TableName.Rows]: "[topicSlug+ordinal], goId, topicSlug, lastSeenAt, *relatedSlugs",
+};
+
 /** Index names used in queries, so a rename is caught in one place. */
 export const INDEX = {
   attemptTs: "ts",
   attemptGoId: "goId",
   questionGoId: "goId",
+  rowGoId: "goId",
   rowTopicSlug: "topicSlug",
+  rowRelatedSlugs: "relatedSlugs",
   diagnosticTs: "ts",
 } as const;
 

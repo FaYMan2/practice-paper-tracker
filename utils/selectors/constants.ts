@@ -46,6 +46,9 @@ export const SEL = {
    * is left alone.
    */
   indexTopicLink: "ul.wp-block-list a[href]",
+  listItem: "li",
+  /** Marks a subject heading on the index page, in either nesting order. */
+  strong: "strong",
 } as const;
 
 export const CLS = {

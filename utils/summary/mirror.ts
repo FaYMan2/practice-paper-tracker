@@ -35,11 +35,29 @@ export async function getSummary(slug: string): Promise<TopicSummary | null> {
   return (await summaryItem.getValue())[slug] ?? null;
 }
 
+/**
+ * Whether writing these would change anything.
+ *
+ * Every write notifies each open tab, and the dashboard re-reads the database
+ * whenever it is notified — so a write that changes nothing is at best a wasted
+ * repaint and at worst a loop.
+ */
+function isUnchanged(
+  existing: Record<string, TopicSummary>,
+  updated: TopicSummary[],
+): boolean {
+  return updated.every(
+    (summary) => JSON.stringify(existing[summary.slug]) === JSON.stringify(summary),
+  );
+}
+
 export async function mergeSummaries(updated: TopicSummary[]): Promise<void> {
   if (updated.length === 0) return;
 
   await serializeWrite(async () => {
     const existing = await summaryItem.getValue();
+    if (isUnchanged(existing, updated)) return;
+
     const bySlug = Object.fromEntries(updated.map((summary) => [summary.slug, summary]));
     await summaryItem.setValue({ ...existing, ...bySlug });
   });

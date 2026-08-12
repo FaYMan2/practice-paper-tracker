@@ -1,7 +1,7 @@
 /** Recording an answer. */
 
-import { db } from "../../utils/db";
-import { refreshTopicSummary } from "../../utils/summary";
+import { db, INDEX, type TrackerDB } from "../../utils/db";
+import { refreshSummariesFor } from "../../utils/summary";
 import type { MessageKind } from "../../utils/messaging";
 import type { AttemptInput, QuestionRecord, ResponseMap } from "../../types";
 import { upsertTopic } from "./topics";
@@ -28,6 +28,25 @@ function projectAttempt(
 function isConstraintError(error: unknown): boolean {
   const name = (error as { name?: string } | null)?.name ?? "";
   return name === "ConstraintError" || /constraint/i.test(String(error));
+}
+
+/**
+ * Every topic whose figures this answer changes.
+ *
+ * One question sits in more than one place: the topic whose page it was
+ * answered on, any other topic listing the same question, and the child topic
+ * the site files it under. Refreshing only the page's own topic is what left
+ * the others reading zero until something rebuilt everything.
+ */
+async function topicsAffectedBy(
+  attempt: AttemptInput,
+  database: TrackerDB,
+): Promise<string[]> {
+  const rows = await database.rows.where(INDEX.rowGoId).equals(attempt.goId).toArray();
+  return [
+    attempt.topicSlug,
+    ...rows.flatMap((row) => [row.topicSlug, ...row.relatedSlugs]),
+  ];
 }
 
 /**
@@ -66,7 +85,7 @@ export async function recordAttempt(
     });
   });
 
-  await refreshTopicSummary(attempt.topicSlug);
+  await refreshSummariesFor(await topicsAffectedBy(attempt, database));
   const stored: ResponseMap[MessageKind.RecordAttempt] = { stored: true, duplicate: false };
   return stored;
 }

@@ -14,7 +14,7 @@ import {
   topicSlugFromHref,
   topicUrl,
 } from "../url";
-import type { QuestionType, Verdict } from "../../types";
+import type { QuestionType, TopicHierarchyEntry, Verdict } from "../../types";
 import {
   ATTR,
   CLS,
@@ -200,13 +200,15 @@ export function describeQuestion(
   const identity = goId ?? fallback;
   if (identity === null) return null;
 
+  const links = examAndTopicLinks(question);
   const descriptor: QuestionDescriptor = {
     element: question,
     goId: identity,
     ordinal,
     type: questionType(question),
     marks: marksForQuestion(question),
-    examSlug: examAndTopicLinks(question).examSlug,
+    examSlug: links.examSlug,
+    relatedSlugs: links.relatedSlugs,
     provisional: goId === null,
   };
   return descriptor;
@@ -240,6 +242,66 @@ export function indexTopicLinks(doc: ParentNode): TopicLink[] {
     seen.add(link.slug);
     return true;
   });
+}
+
+/**
+ * Whether this anchor is the bold heading of its list item.
+ *
+ * Both nestings occur on the index page — `<li><strong><a>` for most subjects
+ * and `<li><a><strong>` for the General Aptitude group — so neither may be
+ * assumed.
+ */
+function isHeadingAnchor(anchor: Element, item: Element): boolean {
+  const wrapped = anchor.closest(SEL.strong);
+  if (wrapped && item.contains(wrapped)) return true;
+  return anchor.querySelector(SEL.strong) !== null;
+}
+
+/** The topic this list item is the heading for, if it is a heading at all. */
+function headingSlug(item: Element): string | null {
+  const anchors = [...item.querySelectorAll(SEL.anchor)].filter(
+    (anchor) => anchor.closest(SEL.listItem) === item && isHeadingAnchor(anchor, item),
+  );
+  return anchors.map(asTopicLink).find(R.isNotNil)?.slug ?? null;
+}
+
+/**
+ * The subject a topic sits under, found by walking up the list nesting.
+ *
+ * Walking rather than reading one level up is what survives the two shapes the
+ * page actually uses: Algorithms splits its children across two sibling `<ul>`
+ * elements, only one of which carries the `wp-block-list` class, and the ISRO
+ * group's heading is a bare `<strong>` with no anchor — so the search has to
+ * keep climbing past a list item that names no topic.
+ */
+function parentSlugOf(item: Element): string | null {
+  const outer = item.parentElement?.closest(SEL.listItem) ?? null;
+  if (!outer) return null;
+  return headingSlug(outer) ?? parentSlugOf(outer);
+}
+
+function hierarchyEntry(link: TopicLink): TopicHierarchyEntry {
+  const item = link.element.closest(SEL.listItem);
+  const title = link.element.textContent?.trim();
+  const entry: TopicHierarchyEntry = {
+    slug: link.slug,
+    title: title ? title : null,
+    // A heading is a subject in its own right, so it has no parent even though
+    // it sits inside a list item that names it.
+    parentSlug: item && headingSlug(item) === link.slug ? null : parentSlugOf(item ?? link.element),
+  };
+  return entry;
+}
+
+/**
+ * Every topic on the index page, paired with the subject it belongs to.
+ *
+ * De-duplicated by slug like `indexTopicLinks`, keeping the first occurrence:
+ * a handful of topics are listed twice and the repeat carries no extra
+ * information.
+ */
+export function indexTopicTree(doc: ParentNode): TopicHierarchyEntry[] {
+  return indexTopicLinks(doc).map(hierarchyEntry);
 }
 
 function inspectQuestionBlock(question: Element): BlockInspection {

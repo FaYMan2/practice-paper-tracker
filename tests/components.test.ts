@@ -32,6 +32,7 @@ function summary(overrides: Partial<TopicSummary> = {}): TopicSummary {
   const base: TopicSummary = {
     slug: "discrete-mathematics",
     title: "Discrete Mathematics",
+    parentSlug: null,
     solvedRows: 12,
     correctRows: 9,
     wrongRows: 3,

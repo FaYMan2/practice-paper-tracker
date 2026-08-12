@@ -7,11 +7,18 @@ export interface TopicRowInput {
   ordinal: number;
   goId: string;
   marks: number;
+  /**
+   * True when the row was seen on another topic's page and only attributed
+   * here by the site's own labelling. Its `ordinal` belongs to that topic's
+   * numbering, so it can be counted but never navigated to.
+   */
+  borrowed: boolean;
 }
 
 export interface SummaryInputs {
   slug: string;
   title: string | null;
+  parentSlug: string | null;
   totalFromSite: number | null;
   totalMarksFromSite: number | null;
   lastAnsweredOrdinal: number | null;

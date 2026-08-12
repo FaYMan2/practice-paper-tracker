@@ -4,13 +4,14 @@ import type { SummaryInputs, TopicRowInput } from "../utils/summary";
 import type { QuestionStatus } from "../types";
 
 function rows(...specs: [ordinal: number, goId: string, marks?: number][]): TopicRowInput[] {
-  return specs.map(([ordinal, goId, marks = 1]) => ({ ordinal, goId, marks }));
+  return specs.map(([ordinal, goId, marks = 1]) => ({ ordinal, goId, marks, borrowed: false }));
 }
 
 function inputs(overrides: Partial<SummaryInputs> = {}): SummaryInputs {
   const base: SummaryInputs = {
     slug: "stack",
     title: "Stack",
+    parentSlug: "data-structure",
     totalFromSite: null,
     totalMarksFromSite: null,
     lastAnsweredOrdinal: null,

@@ -45,9 +45,9 @@ describe("schema", () => {
     // One question occupies several rows across topics, so the row key cannot
     // be the question id.
     await db.rows.bulkPut([
-      { topicSlug: "stack", ordinal: 11, goId: "49487", examSlug: null, type: "MCQ", marks: 1, lastSeenAt: 1 },
-      { topicSlug: "stack", ordinal: 17, goId: "49487", examSlug: null, type: "MCQ", marks: 1, lastSeenAt: 1 },
-      { topicSlug: "data-structure", ordinal: 3, goId: "49487", examSlug: null, type: "MCQ", marks: 1, lastSeenAt: 1 },
+      { topicSlug: "stack", ordinal: 11, goId: "49487", examSlug: null, type: "MCQ", marks: 1, relatedSlugs: [], lastSeenAt: 1 },
+      { topicSlug: "stack", ordinal: 17, goId: "49487", examSlug: null, type: "MCQ", marks: 1, relatedSlugs: [], lastSeenAt: 1 },
+      { topicSlug: "data-structure", ordinal: 3, goId: "49487", examSlug: null, type: "MCQ", marks: 1, relatedSlugs: [], lastSeenAt: 1 },
     ]);
     expect(await db.rows.count()).toBe(3);
     expect(await db.rows.where("goId").equals("49487").count()).toBe(3);
