@@ -59,7 +59,8 @@ export interface GetSummariesMessage {
  */
 export interface QuestionMark {
   goId: string;
-  status: Verdict;
+  status: QuestionStatus;
+  starred: boolean;
   attemptCount: number;
   lastAttemptAt: number | null;
   answeredIn: string[];
@@ -96,6 +97,7 @@ export interface TopicQuestionRow {
   firstVerdict: Verdict | null;
   /** True when identity fell back to a synthetic key, so it cannot cross topics. */
   provisional: boolean;
+  starred: boolean;
 }
 
 export interface TopicDetail {
@@ -113,6 +115,28 @@ export interface TopicDetail {
  */
 export interface GetDashboardMessage {
   kind: MessageKind.GetDashboard;
+}
+
+/** Which pages of a topic have already been indexed, so a crawl can skip them. */
+export interface GetTopicPagesMessage {
+  kind: MessageKind.GetTopicPages;
+  slug: string;
+}
+
+export interface TopicPages {
+  slug: string;
+  pages: number[];
+}
+
+/**
+ * Starring is per question, not per row: a question starred under one topic is
+ * starred everywhere it appears, which is the same identity rule the rest of
+ * the tracker runs on.
+ */
+export interface SetStarMessage {
+  kind: MessageKind.SetStar;
+  goId: string;
+  starred: boolean;
 }
 
 export interface GetTopicDetailMessage {
@@ -140,6 +164,8 @@ export type Message =
   | GetSummariesMessage
   | GetQuestionMarksMessage
   | GetDashboardMessage
+  | GetTopicPagesMessage
+  | SetStarMessage
   | GetTopicDetailMessage
   | ReportHierarchyMessage
   | ReportDiagnosticMessage
@@ -156,6 +182,11 @@ export interface ObservePageResponse {
 
 export interface ReportDiagnosticResponse {
   ok: true;
+}
+
+export interface SetStarResponse {
+  goId: string;
+  starred: boolean;
 }
 
 /** How many topic rows the scraped hierarchy touched. */
@@ -175,6 +206,8 @@ export interface ResponseMap {
   [MessageKind.GetSummaries]: Record<string, TopicSummary>;
   [MessageKind.GetQuestionMarks]: Record<string, QuestionMark>;
   [MessageKind.GetDashboard]: Record<string, TopicSummary>;
+  [MessageKind.GetTopicPages]: TopicPages;
+  [MessageKind.SetStar]: SetStarResponse;
   [MessageKind.GetTopicDetail]: TopicDetail;
   [MessageKind.ReportHierarchy]: ReportHierarchyResponse;
   [MessageKind.ReportDiagnostic]: ReportDiagnosticResponse;

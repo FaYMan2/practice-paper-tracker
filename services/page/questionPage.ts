@@ -39,7 +39,7 @@ export async function runQuestionPage(
   const context = buildContext(doc, href, page);
 
   startTracking(context);
-  followProgress(doc, context.topicSlug);
+  followProgress(doc, context.topicSlug, href);
   followResumeHash(context);
   applyResume(context, context.resume);
 

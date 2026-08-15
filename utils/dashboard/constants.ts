@@ -12,6 +12,7 @@ export enum QuestionFilter {
   Correct = "correct",
   Wrong = "wrong",
   Unattempted = "unattempted",
+  Starred = "starred",
 }
 
 /** The group topics fall into when the index page gives them no linked parent. */

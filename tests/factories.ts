@@ -44,6 +44,7 @@ export function question(
     lastAttemptAt: null,
     firstVerdict: null,
     provisional: false,
+    starred: false,
   };
   return { ...base, ...overrides };
 }

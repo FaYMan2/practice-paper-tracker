@@ -1,6 +1,6 @@
 /** Recording an answer. */
 
-import { db, INDEX, type TrackerDB } from "../../utils/db";
+import { db, INDEX, relatedSlugsOf, type TrackerDB } from "../../utils/db";
 import { refreshSummariesFor } from "../../utils/summary";
 import type { MessageKind } from "../../utils/messaging";
 import type { AttemptInput, QuestionRecord, ResponseMap } from "../../types";
@@ -45,13 +45,12 @@ async function topicsAffectedBy(
   const rows = await database.rows.where(INDEX.rowGoId).equals(attempt.goId).toArray();
   return [
     attempt.topicSlug,
-    ...rows.flatMap((row) => [row.topicSlug, ...row.relatedSlugs]),
+    ...rows.flatMap((row) => [row.topicSlug, ...relatedSlugsOf(row)]),
   ];
 }
 
 /**
  * Appends an attempt. Never updates an existing one.
- *
  * `eventId` carries a unique index, so a message retried after a lost
  * acknowledgement lands on the constraint error below and is reported as a
  * duplicate rather than doubling the user's attempt count.

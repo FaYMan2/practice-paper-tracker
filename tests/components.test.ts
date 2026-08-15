@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { startCapture } from "../utils/capture";
 import {
   STRIP_ID,
@@ -8,6 +8,7 @@ import {
 } from "../components";
 import { formatDate, pluralize, slugToTitle, topicDisplayName } from "../utils/format";
 import { CLS, SEL, describeQuestions } from "../utils/selectors";
+import { CrawlState } from "../utils/crawl";
 import type { AttemptInput, Message, QuestionMark, TopicSummary } from "../types";
 import { MessageKind } from "../utils/messaging";
 import { FIXTURES, loadHtml } from "./fixtures";
@@ -21,6 +22,7 @@ function mark(overrides: Partial<QuestionMark> & Pick<QuestionMark, "goId">): Qu
   const base: QuestionMark = {
     goId: overrides.goId,
     status: "correct",
+    starred: false,
     attemptCount: 1,
     lastAttemptAt: Date.UTC(2026, 7, 11),
     answeredIn: ["discrete-mathematics"],
@@ -214,7 +216,7 @@ describe("painting does not look like answering", () => {
 describe("progress strip", () => {
   it("shows attempted, correct, wrong and marks", () => {
     mountPage();
-    paintProgressStrip(document, summary());
+    paintProgressStrip(document, { summary: summary() });
 
     expect(stripText()).toContain("12 / 465 attempted");
     expect(stripText()).toContain("9 correct");
@@ -224,7 +226,7 @@ describe("progress strip", () => {
 
   it("sits above the question list", () => {
     mountPage();
-    paintProgressStrip(document, summary());
+    paintProgressStrip(document, { summary: summary() });
 
     const strip = document.getElementById(STRIP_ID)!;
     expect(strip.nextElementSibling).toBe(document.querySelector(SEL.quizArea));
@@ -232,7 +234,7 @@ describe("progress strip", () => {
 
   it("says counts are a floor while the topic is partly indexed", () => {
     mountPage();
-    paintProgressStrip(document, summary({ fullyIndexed: false, indexedRows: 20 }));
+    paintProgressStrip(document, { summary: summary({ fullyIndexed: false, indexedRows: 20 }) });
 
     expect(stripText()).toContain("at least 12 / 465");
     expect(stripText()).toContain("partial index");
@@ -240,20 +242,20 @@ describe("progress strip", () => {
 
   it("says so when nothing has been recorded", () => {
     mountPage();
-    paintProgressStrip(document, summary({ solvedRows: 0 }));
+    paintProgressStrip(document, { summary: summary({ solvedRows: 0 }) });
     expect(stripText()).toContain("nothing recorded");
   });
 
   it("handles a topic with no stored summary at all", () => {
     mountPage();
-    paintProgressStrip(document, null);
+    paintProgressStrip(document, { summary: null });
     expect(stripText()).toContain("nothing recorded");
   });
 
   it("replaces rather than stacks when repainted", () => {
     mountPage();
-    paintProgressStrip(document, summary());
-    paintProgressStrip(document, summary({ correctRows: 10 }));
+    paintProgressStrip(document, { summary: summary() });
+    paintProgressStrip(document, { summary: summary({ correctRows: 10 }) });
 
     expect(document.querySelectorAll(`.${UI_CLASS.strip}`)).toHaveLength(1);
     expect(stripText()).toContain("10 correct");
@@ -295,10 +297,171 @@ describe("namespacing", () => {
       topicSlug: "discrete-mathematics",
       topicTitles: {},
     });
-    paintProgressStrip(document, summary());
+    paintProgressStrip(document, { summary: summary() });
 
     const injected = [...document.querySelectorAll(`.${UI_CLASS.badge}, .${UI_CLASS.strip}`)];
     expect(injected).toHaveLength(2);
     expect(injected.every((node) => node.classList.contains(CLS.ours))).toBe(true);
   });
 });
+
+describe("indexing control", () => {
+  const noop = () => undefined;
+
+  function paintWith(input: Parameters<typeof paintProgressStrip>[1]): string {
+    mountPage();
+    paintProgressStrip(document, input);
+    return stripText();
+  }
+
+  it("offers to index a topic whose questions have not all been seen", () => {
+    const text = paintWith({
+      summary: summary({ fullyIndexed: false }),
+      onStartCrawl: noop,
+      onCancelCrawl: noop,
+    });
+
+    expect(text).toContain("Index this topic");
+  });
+
+  it("offers nothing once the topic is fully indexed", () => {
+    // There is nothing left to fetch, so the offer would be noise on every page.
+    const text = paintWith({
+      summary: summary({ fullyIndexed: true }),
+      onStartCrawl: noop,
+      onCancelCrawl: noop,
+    });
+
+    expect(text).not.toContain("Index this topic");
+  });
+
+  it("offers to index a topic with nothing recorded in it yet", () => {
+    const text = paintWith({
+      summary: summary({ solvedRows: 0, fullyIndexed: false }),
+      onStartCrawl: noop,
+      onCancelCrawl: noop,
+    });
+
+    expect(text).toContain("Index this topic");
+  });
+
+  it("reports the page it is on, and offers to stop", () => {
+    const text = paintWith({
+      summary: summary({ fullyIndexed: false }),
+      progress: {
+        slug: "discrete-mathematics",
+        state: CrawlState.Running,
+        pageNo: 12,
+        fetched: 12,
+        recorded: 47,
+      },
+      onStartCrawl: noop,
+      onCancelCrawl: noop,
+    });
+
+    expect(text).toContain("Indexing page 12");
+    expect(text).toContain("47 questions found");
+    expect(text).toContain("Stop");
+  });
+
+  it("says a cancelled run can be picked up again", () => {
+    const text = paintWith({
+      summary: summary({ fullyIndexed: false }),
+      progress: {
+        slug: "discrete-mathematics",
+        state: CrawlState.Cancelled,
+        pageNo: 12,
+        fetched: 12,
+        recorded: 47,
+      },
+      onStartCrawl: noop,
+      onCancelCrawl: noop,
+    });
+
+    expect(text).toContain("carry on");
+  });
+
+  it("starts and stops on click", () => {
+    const onStartCrawl = vi.fn();
+    const onCancelCrawl = vi.fn();
+
+    mountPage();
+    paintProgressStrip(document, {
+      summary: summary({ fullyIndexed: false }),
+      onStartCrawl,
+      onCancelCrawl,
+    });
+    document.querySelector<HTMLElement>(`.${UI_CLASS.crawl}`)!.click();
+
+    paintProgressStrip(document, {
+      summary: summary({ fullyIndexed: false }),
+      progress: {
+        slug: "stack",
+        state: CrawlState.Running,
+        pageNo: 2,
+        fetched: 2,
+        recorded: 10,
+      },
+      onStartCrawl,
+      onCancelCrawl,
+    });
+    document.querySelector<HTMLElement>(`.${UI_CLASS.crawlCancel}`)!.click();
+
+    expect(onStartCrawl).toHaveBeenCalledOnce();
+    expect(onCancelCrawl).toHaveBeenCalledOnce();
+  });
+});
+
+describe("star control", () => {
+  function paintStars(marks: Record<string, QuestionMark>, onStar = () => undefined) {
+    const { questions } = mountPage();
+    paintQuestionMarkers(document, {
+      questions,
+      marks,
+      topicSlug: "discrete-mathematics",
+      topicTitles: {},
+      onStar,
+    });
+    return questions;
+  }
+
+  it("puts a star on every question, whether or not it is known", () => {
+    const questions = paintStars({});
+
+    expect(document.querySelectorAll(`.${UI_CLASS.star}`)).toHaveLength(questions.length);
+  });
+
+  it("shows a starred question as starred", () => {
+    const questions = paintStars({
+      [questionsOnPage()[0]!]: mark({ goId: questionsOnPage()[0]!, starred: true }),
+    });
+
+    const first = questions[0]!.element.querySelector(`.${UI_CLASS.star}`)!;
+    expect(first.className).toContain(UI_CLASS.starOn);
+    expect(first.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("badges nothing for a question that is only starred", () => {
+    // Starred is not attempted, and the verdict badge must not imply it is.
+    const goId = questionsOnPage()[0]!;
+    paintStars({ [goId]: mark({ goId, starred: true, status: "unattempted" }) });
+
+    expect(document.querySelectorAll(`.${UI_CLASS.badge}`)).toHaveLength(0);
+  });
+
+  it("asks for the opposite of what is currently stored", () => {
+    const onStar = vi.fn();
+    const goId = questionsOnPage()[0]!;
+    paintStars({ [goId]: mark({ goId, starred: true }) }, onStar);
+
+    document.querySelector<HTMLElement>(`.${UI_CLASS.star}`)!.click();
+
+    expect(onStar).toHaveBeenCalledWith(goId, false);
+  });
+});
+
+/** The GateOverflow ids on the fixture page, in document order. */
+function questionsOnPage(): string[] {
+  const doc = loadHtml(FIXTURES.discreteMathP1);
+  return describeQuestions(doc, "discrete-mathematics").map((question) => question.goId);
+}

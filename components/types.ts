@@ -26,4 +26,6 @@ export interface PaintMarkersInput {
   topicSlug: string;
   /** Slug -> display title, for naming the topic a question was solved under. */
   topicTitles: Record<string, string | null>;
+  /** Omit to paint no star controls, which is what the tests without a writer do. */
+  onStar?: (goId: string, starred: boolean) => void;
 }

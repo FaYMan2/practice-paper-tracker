@@ -1,6 +1,13 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { questionMarks, rebuildQuestionProjections, TrackerDB } from "../utils/db";
+import Dexie from "dexie";
+import {
+  SCHEMA_V1,
+  TrackerDB,
+  questionMarks,
+  rebuildQuestionProjections,
+  relatedSlugsOf,
+} from "../utils/db";
 import type { AttemptInput, QuestionRecord } from "../types";
 
 let db: TrackerDB;
@@ -228,5 +235,43 @@ describe("questionMarks", () => {
 
   it("handles an empty request without touching the database", async () => {
     expect(await questionMarks([], db)).toEqual(new Map());
+  });
+});
+
+describe("upgrading a database written before cross-topic attribution", () => {
+  /** A row exactly as version 1 wrote it: no `relatedSlugs` at all. */
+  async function seedVersionOne(name: string): Promise<void> {
+    const legacy = new Dexie(name);
+    legacy.version(1).stores(SCHEMA_V1);
+    await legacy.open();
+    await legacy.table("rows").put({
+      topicSlug: "discrete-mathematics",
+      ordinal: 5,
+      goId: "523200",
+      examSlug: "gate-cse-2026-set-2",
+      type: "MCQ",
+      marks: 2,
+      lastSeenAt: 1_000,
+    });
+    legacy.close();
+  }
+
+  it("gives every existing row an array to read", async () => {
+    const name = `test-upgrade-${dbCount++}`;
+    await seedVersionOne(name);
+
+    const upgraded = new TrackerDB(name);
+    await upgraded.open();
+    const row = await upgraded.rows.get(["discrete-mathematics", 5]);
+
+    expect(row?.relatedSlugs).toEqual([]);
+  });
+
+  it("reads a row that somehow still has none without throwing", async () => {
+    // Belt and braces: the version 2 backfill was supposed to guarantee this
+    // and did not, and the failure took the whole dashboard down with it.
+    const bare = { goId: "1", topicSlug: "stack", ordinal: 1, marks: 1 };
+
+    expect(relatedSlugsOf(bare as never)).toEqual([]);
   });
 });

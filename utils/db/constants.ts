@@ -2,7 +2,7 @@
 
 export const DB_NAME = "practice-paper-tracker";
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export enum TableName {
   Questions = "questions",
@@ -37,6 +37,17 @@ export const SCHEMA_V1: Record<TableName, string> = {
 export const SCHEMA_V2: Pick<Record<TableName, string>, TableName.Rows> = {
   [TableName.Rows]: "[topicSlug+ordinal], goId, topicSlug, lastSeenAt, *relatedSlugs",
 };
+
+/**
+ * No schema change — the same stores as version 2, re-declared so the backfill
+ * below runs again.
+ *
+ * The version 2 upgrade was meant to give every existing row a `relatedSlugs`
+ * array and did not reliably do so: rows survived into version 2 without the
+ * field, and reading one crashed the dashboard. Repeating it is cheap, and the
+ * read path no longer trusts it either.
+ */
+export const SCHEMA_V3: Pick<Record<TableName, string>, TableName.Rows> = SCHEMA_V2;
 
 /** Index names used in queries, so a rename is caught in one place. */
 export const INDEX = {
