@@ -27,6 +27,7 @@ function toQuestionRow(row: RowRecord, question: QuestionRecord | undefined): To
     lastAttemptAt: question?.lastAttemptAt ?? null,
     firstVerdict: question?.firstVerdict ?? null,
     provisional: isProvisionalKey(row.goId),
+    starred: question?.starred ?? false,
   };
   return joined;
 }

@@ -9,9 +9,11 @@
 import "./global.css";
 
 export * from "./Badge";
+export * from "./CrawlControl";
 export * from "./Notice";
 export * from "./ProgressStrip";
 export * from "./ResumeLink";
+export * from "./StarButton";
 export * from "./TopicBadge";
 export * from "./constants";
 export * from "./util";

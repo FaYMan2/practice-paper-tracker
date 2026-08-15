@@ -74,6 +74,11 @@
   font-size: 12px;
 }
 
+.question-star {
+  color: #d97706;
+  font-size: 13px;
+}
+
 .pill {
   padding: 1px 8px;
   border-radius: 999px;

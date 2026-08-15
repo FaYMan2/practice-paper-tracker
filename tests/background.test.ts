@@ -5,8 +5,11 @@ import { TrackerDB, setDb } from "../utils/db";
 import { topicDetail } from "../services/messages/details";
 import { observePage } from "../services/messages/pages";
 import { recordAttempt } from "../services/messages/attempts";
-import { buildTopicSummary } from "../utils/summary";
+import { buildAllSummaries, buildTopicSummary } from "../utils/summary";
 import { recordHierarchy } from "../services/messages/hierarchy";
+import { setStar } from "../services/messages/stars";
+import { topicPages } from "../services/messages/coverage";
+import { rebuildQuestionProjections, questionMarks } from "../utils/db";
 import { getSummaries, getSummary, watchSummaries } from "../utils/summary/mirror";
 import { refreshAllSummaries } from "../utils/summary";
 import type {
@@ -329,5 +332,101 @@ describe("mirror writes", () => {
     unwatch();
 
     expect(notifications).toBe(0);
+  });
+});
+
+describe("starring", () => {
+  it("stars a question that has never been answered", async () => {
+    // Most of the point: flagging something to come back to before attempting it.
+    await setStar("523093", true);
+
+    expect((await db.questions.get("523093"))?.starred).toBe(true);
+  });
+
+  it("survives a rebuild of everything derived from the attempt log", async () => {
+    // `starred` is the one field no amount of replaying answers can reproduce.
+    await db.rows.put(row(1, "523093"));
+    await db.questions.put(question("523093"));
+    await setStar("523093", true);
+
+    await rebuildQuestionProjections(db);
+
+    expect((await db.questions.get("523093"))?.starred).toBe(true);
+  });
+
+  it("paints a starred question even with nothing attempted", async () => {
+    await setStar("523093", true);
+    const marks = await questionMarks(["523093"], db);
+
+    expect(marks.get("523093")).toMatchObject({ starred: true, status: "unattempted" });
+  });
+
+  it("unstars", async () => {
+    await setStar("523093", true);
+    await setStar("523093", false);
+
+    expect((await db.questions.get("523093"))?.starred).toBe(false);
+  });
+});
+
+describe("topicPages", () => {
+  it("reports the pages a crawl can skip", async () => {
+    await observePage({
+      topicSlug: "stack",
+      title: "Stack",
+      pageNo: 4,
+      totalFromSite: 34,
+      totalMarksFromSite: 44,
+      rows: [
+        { ordinal: 16, goId: "1", examSlug: null, type: "MCQ", marks: 1, relatedSlugs: [] },
+      ],
+    });
+
+    expect(await topicPages("stack")).toEqual({ slug: "stack", pages: [4] });
+  });
+
+  it("reports nothing for a topic never visited", async () => {
+    expect((await topicPages("queue")).pages).toEqual([]);
+  });
+});
+
+describe("summaries over rows written before cross-topic attribution", () => {
+  it("computes every topic without tripping over a missing label list", async () => {
+    // This is what took the dashboard down: one row from an older version, and
+    // the whole rebuild threw before a single topic was computed.
+    await observePage({
+      topicSlug: "discrete-mathematics",
+      title: "Discrete Mathematics",
+      pageNo: 1,
+      totalFromSite: 465,
+      totalMarksFromSite: 587,
+      rows: [
+        {
+          ordinal: 1,
+          goId: "523093",
+          examSlug: null,
+          type: "MCQ",
+          marks: 2,
+          relatedSlugs: ["functions"],
+        },
+      ],
+    });
+    await db.rows.put({
+      topicSlug: "stack",
+      ordinal: 9,
+      goId: "49487",
+      examSlug: null,
+      type: "MCQ",
+      marks: 1,
+      lastSeenAt: 1,
+    } as never);
+
+    const summaries = await buildAllSummaries(db);
+
+    expect(summaries.map((summary) => summary.slug).sort()).toEqual([
+      "discrete-mathematics",
+      "functions",
+      "stack",
+    ]);
   });
 });

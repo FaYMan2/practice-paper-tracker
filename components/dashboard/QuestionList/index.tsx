@@ -28,7 +28,7 @@ import {
   NOT_INDEXED_LABEL,
   NO_QUESTIONS_LABEL,
 } from "../constants";
-import { STATUS_TEXT } from "./constants";
+import { STARRED_TITLE, STAR_GLYPH, STATUS_TEXT } from "./constants";
 
 export * from "./constants";
 
@@ -85,6 +85,11 @@ function Question({
       >
         Q{row.ordinal}
       </a>
+      {row.starred ? (
+        <span className="question-star" title={STARRED_TITLE}>
+          {STAR_GLYPH}
+        </span>
+      ) : null}
       <span className={`pill pill-${row.status}`}>{STATUS_TEXT[row.status]}</span>
       <span className="question-meta">{metaText(row, slug, titles)}</span>
     </li>

@@ -6,7 +6,7 @@
  */
 
 import * as R from "ramda";
-import { db, INDEX, type TrackerDB } from "../db";
+import { db, INDEX, relatedSlugsOf, type TrackerDB } from "../db";
 import type {
   QuestionRecord,
   QuestionStatus,
@@ -254,7 +254,7 @@ function groupRowsBySlug(rows: RowRecord[]): Map<string, TopicRowInput[]> {
   // Second pass, because a row is only borrowed where the topic has no row of
   // its own for that question — which is not known until the first pass ends.
   rows.forEach((row) => {
-    row.relatedSlugs
+    relatedSlugsOf(row)
       .filter((slug) => !ownGoIds.get(slug)?.has(row.goId))
       .forEach((slug) => push(slug, toRowInput(row, true)));
   });

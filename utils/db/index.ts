@@ -8,7 +8,7 @@
  * goes content script -> sendMessage -> background.
  */
 
-import Dexie, { type Table } from "dexie";
+import Dexie, { type Table, type Transaction } from "dexie";
 import type {
   AttemptRecord,
   DiagnosticRecord,
@@ -16,11 +16,27 @@ import type {
   QuestionRecord,
   RowRecord,
   TopicRecord,
-  Verdict,
 } from "../../types";
-import { DB_NAME, DIAGNOSTIC_LIMIT, INDEX, SCHEMA_V1, SCHEMA_V2, TableName } from "./constants";
+import {
+  DB_NAME,
+  DIAGNOSTIC_LIMIT,
+  INDEX,
+  SCHEMA_V1,
+  SCHEMA_V2,
+  SCHEMA_V3,
+  TableName,
+} from "./constants";
 
 export * from "./constants";
+
+async function backfillRelatedSlugs(tx: Transaction): Promise<void> {
+  await tx
+    .table<RowRecord>(TableName.Rows)
+    .toCollection()
+    .modify((row) => {
+      row.relatedSlugs = row.relatedSlugs ?? [];
+    });
+}
 
 export class TrackerDB extends Dexie {
   questions!: Table<QuestionRecord, string>;
@@ -32,20 +48,13 @@ export class TrackerDB extends Dexie {
   constructor(name: string = DB_NAME) {
     super(name);
     this.version(1).stores(SCHEMA_V1);
-    this.version(2)
-      .stores(SCHEMA_V2)
-      // Rows written before this version carry no `relatedSlugs`, and a
-      // multi-entry index skips a missing field entirely. Backfilling an empty
-      // array keeps every row addressable; revisiting a page fills in the real
-      // labels.
-      .upgrade(async (tx) => {
-        await tx
-          .table<RowRecord>(TableName.Rows)
-          .toCollection()
-          .modify((row) => {
-            row.relatedSlugs ??= [];
-          });
-      });
+    // Rows written before this version carry no `relatedSlugs`, and a
+    // multi-entry index skips a missing field entirely. Backfilling an empty
+    // array keeps every row addressable; revisiting a page fills in the real
+    // labels.
+    this.version(2).stores(SCHEMA_V2).upgrade(backfillRelatedSlugs);
+    // Repeated because the version 2 pass left rows behind — see SCHEMA_V3.
+    this.version(3).stores(SCHEMA_V3).upgrade(backfillRelatedSlugs);
   }
 }
 
@@ -59,6 +68,17 @@ let instance: TrackerDB | null = null;
 export function db(): TrackerDB {
   instance ??= new TrackerDB();
   return instance;
+}
+
+/**
+ * The topics a stored row also counts towards.
+ *
+ * Rows written before the field existed have no array at all, and a crash
+ * while reading one takes the whole dashboard with it — so nothing reads the
+ * field directly.
+ */
+export function relatedSlugsOf(row: RowRecord): string[] {
+  return row.relatedSlugs ?? [];
 }
 
 /** Test seam — lets a suite point at an isolated database. */
@@ -133,10 +153,11 @@ export async function rebuildQuestionProjections(database: TrackerDB = db()): Pr
 /**
  * What is known about each of the given questions, for painting a page.
  *
- * Unattempted questions are omitted, so the caller can treat presence in the
- * result as "this has been answered before". `answeredIn` comes from the
- * attempt log rather than the current topic, which is what lets a page show
- * that a question was already solved under a different topic.
+ * Questions with nothing recorded against them are omitted — but a starred
+ * question counts as something recorded, even with no attempt, because the
+ * star still has to be painted. `answeredIn` comes from the attempt log rather
+ * than the current topic, which is what lets a page show that a question was
+ * already solved under a different topic.
  */
 export async function questionMarks(
   goIds: string[],
@@ -145,23 +166,26 @@ export async function questionMarks(
   if (goIds.length === 0) return new Map<string, QuestionMark>();
 
   const questions = await database.questions.where(INDEX.questionGoId).anyOf(goIds).toArray();
-  const answered = questions.filter((question) => question.status !== "unattempted");
-  if (answered.length === 0) return new Map<string, QuestionMark>();
+  const known = questions.filter(
+    (question) => question.status !== "unattempted" || question.starred,
+  );
+  if (known.length === 0) return new Map<string, QuestionMark>();
 
   const attempts = await database.attempts
     .where(INDEX.attemptGoId)
-    .anyOf(answered.map((question) => question.goId))
+    .anyOf(known.map((question) => question.goId))
     .toArray();
   const attemptsByGoId = Map.groupBy(attempts, (attempt) => attempt.goId);
 
   return new Map(
-    answered.map((question) => {
+    known.map((question) => {
       const topics = (attemptsByGoId.get(question.goId) ?? []).map(
         (attempt) => attempt.topicSlug,
       );
       const mark: QuestionMark = {
         goId: question.goId,
-        status: question.status as Verdict,
+        status: question.status,
+        starred: question.starred,
         attemptCount: question.attemptCount,
         lastAttemptAt: question.lastAttemptAt,
         answeredIn: [...new Set(topics)],

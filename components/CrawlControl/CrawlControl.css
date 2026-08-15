@@ -1,0 +1,37 @@
+/* The control that indexes the rest of a topic. */
+
+.pptr.pptr-crawl {
+  padding: 2px 10px;
+  border: 1px solid #2f6d1a;
+  border-radius: 999px;
+  background: transparent;
+  color: #2f6d1a;
+  font: 600 12px/1.6 system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pptr.pptr-crawl:hover {
+  background: #eef6ea;
+}
+
+.pptr.pptr-crawl.pptr-crawl-cancel {
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+.pptr.pptr-crawl.pptr-crawl-cancel:hover {
+  background: #fef2f2;
+}
+
+.pptr-crawl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pptr-crawl-note {
+  color: #64748b;
+  font-size: 12px;
+  font-style: italic;
+}

@@ -20,6 +20,12 @@ export const UI_CLASS = {
   /** The "last attempt" link, styled as the lesser of the two actions. */
   resumeSecondary: "pptr-resume-secondary",
   topicBadge: "pptr-topic-badge",
+  crawl: "pptr-crawl",
+  crawlCancel: "pptr-crawl-cancel",
+  crawlStatus: "pptr-crawl-status",
+  crawlNote: "pptr-crawl-note",
+  star: "pptr-star",
+  starOn: "pptr-star-on",
   notice: "pptr-notice",
   noticeAction: "pptr-notice-action",
   /** Briefly outlines the question a resume link landed on. */

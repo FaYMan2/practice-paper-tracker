@@ -10,10 +10,11 @@ import "./Badge.css";
 
 import { formatDate, pluralize, topicDisplayName } from "../../utils/format";
 import { CLS, SEL } from "../../utils/selectors";
-import type { QuestionMark, Verdict } from "../../types";
+import type { QuestionMark, QuestionStatus } from "../../types";
 import { UI_CLASS } from "../constants";
 import type { MarkerKind, MarkerView, PaintMarkersInput, PaintTarget } from "../types";
 import { el } from "../util";
+import { StarButton } from "../StarButton";
 import { GLYPH } from "./constants";
 
 export * from "./constants";
@@ -24,11 +25,11 @@ const MARKER_CLASS: Record<MarkerKind, string> = {
   elsewhere: CLS.elsewhere,
 };
 
-function verdictLabel(status: Verdict): string {
+function verdictLabel(status: QuestionStatus): string {
   return status === "correct" ? "Correct" : "Wrong";
 }
 
-function verdictGlyph(status: Verdict): string {
+function verdictGlyph(status: QuestionStatus): string {
   return status === "correct" ? GLYPH.correct : GLYPH.wrong;
 }
 
@@ -99,7 +100,35 @@ export function Badge(doc: Document, view: MarkerView): HTMLElement {
   return badge;
 }
 
-/** Repaints one question. Returns whether a badge ended up on it. */
+/**
+ * The star, which every question gets whether or not anything is known about
+ * it — starring an untouched question is most of the point.
+ *
+ * Nothing is painted when the caller supplies no writer, which is how a render
+ * with no way to persist a click avoids offering one.
+ */
+function paintStar(
+  doc: Document,
+  anchor: Element,
+  target: PaintTarget,
+  mark: QuestionMark | undefined,
+  onStar: PaintMarkersInput["onStar"],
+): void {
+  if (!onStar) return;
+
+  anchor.insertAdjacentElement(
+    "afterend",
+    StarButton(doc, target.goId, mark?.starred ?? false, onStar),
+  );
+}
+
+/**
+ * Repaints one question: its star, always, and its verdict badge when there is
+ * one. Returns whether a badge ended up on it.
+ *
+ * A starred question that has never been answered carries a mark but no
+ * verdict, which is why the two are painted independently.
+ */
 function paintQuestion(
   doc: Document,
   target: PaintTarget,
@@ -111,9 +140,12 @@ function paintQuestion(
   // Clear first so an unmarked question loses a stale badge, and a repaint
   // replaces rather than stacks.
   anchor.parentElement?.querySelector(`.${UI_CLASS.badge}`)?.remove();
+  anchor.parentElement?.querySelector(`.${UI_CLASS.star}`)?.remove();
 
   const mark = input.marks[target.goId];
-  if (!mark) return false;
+  paintStar(doc, anchor, target, mark, input.onStar);
+
+  if (!mark || mark.status === "unattempted") return false;
 
   const view = describeMarker(mark, input.topicSlug, input.topicTitles);
   anchor.insertAdjacentElement("afterend", Badge(doc, view));

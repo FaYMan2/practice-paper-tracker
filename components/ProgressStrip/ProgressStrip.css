@@ -35,6 +35,12 @@
   font-style: italic;
 }
 
+/* The indexing control sits with the counts, before the navigation links. */
+.pptr.pptr-strip .pptr-crawl-status,
+.pptr.pptr-strip .pptr-crawl-note {
+  white-space: nowrap;
+}
+
 /* Pushes both navigation links to the end of the row. */
 .pptr.pptr-strip .pptr-strip-actions {
   display: inline-flex;

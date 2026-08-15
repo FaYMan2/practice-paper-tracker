@@ -10,6 +10,7 @@ import type {
   ResponseMap,
   RowRecord,
 } from "../../types";
+import { reconcileProvisional } from "./reconcile";
 import { upsertTopic } from "./topics";
 
 function toRowRecord(topicSlug: string, row: ObservedRow, now: number): RowRecord {
@@ -51,6 +52,12 @@ export async function observePage(
 ): Promise<ResponseMap[MessageKind.ObservePage]> {
   const database = db();
   const now = Date.now();
+
+  // Before anything is written: a placement we hold under a synthetic key may
+  // have gained a real GateOverflow id, and its history has to move across
+  // before the row is overwritten with the new key.
+  const repaired = await reconcileProvisional(page.topicSlug, page.rows, database);
+  if (repaired.length > 0) console.info("[pptr] reconciled provisional keys", repaired);
 
   await database.transaction(
     "rw",

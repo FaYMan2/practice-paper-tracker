@@ -1,0 +1,21 @@
+/* The flag beside a question. */
+
+.pptr.pptr-star {
+  margin-left: 8px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.pptr.pptr-star:hover {
+  color: #b45309;
+}
+
+.pptr.pptr-star.pptr-star-on {
+  color: #d97706;
+}

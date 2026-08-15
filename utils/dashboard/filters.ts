@@ -23,6 +23,9 @@ export const FILTERS: Record<QuestionFilter, FilterDefinition> = {
     label: "Unattempted",
     matches: (row) => row.status === "unattempted",
   },
+  // Cuts across the other three: a starred question can be in any state, which
+  // is the point of starring one.
+  [QuestionFilter.Starred]: { label: "Starred", matches: (row) => row.starred },
 };
 
 export const FILTER_ORDER: QuestionFilter[] = [
@@ -30,6 +33,7 @@ export const FILTER_ORDER: QuestionFilter[] = [
   QuestionFilter.Correct,
   QuestionFilter.Wrong,
   QuestionFilter.Unattempted,
+  QuestionFilter.Starred,
 ];
 
 export function filterQuestions(
