@@ -4,7 +4,7 @@ import { fakeBrowser } from "wxt/testing/fake-browser";
 import { App, Overview, QuestionList, SubjectGrid, TopicTable } from "../components/dashboard";
 import { QuestionFilter } from "../utils/dashboard";
 import { mergeSummaries } from "../utils/summary/mirror";
-import { MessageKind } from "../utils/messaging";
+import { MessageKind, errorReply } from "../utils/messaging";
 import type { Message, TopicDetail, TopicSummary } from "../types";
 import { CHILD, SUBJECT, question, viewOf } from "./factories";
 
@@ -233,6 +233,22 @@ describe("App", () => {
     fakeWorker([SUBJECT, CHILD], DETAIL);
     render(<App />);
 
+    expect(await screen.findByRole("button", { name: /Data Structure/ })).toBeTruthy();
+  });
+
+  it("does not render a failed reply as if it were data", async () => {
+    // A handler that throws still has to answer. Before the reply was marked,
+    // the `{ error }` object arrived here as a set of summaries and the page
+    // died trying to group it.
+    await mergeSummaries([SUBJECT, CHILD]);
+    fakeBrowser.runtime.onMessage.addListener((_message, _sender, sendResponse) => {
+      sendResponse(errorReply(new Error("Cannot read properties of undefined")));
+      return true;
+    });
+
+    render(<App />);
+
+    // Falls back to the mirror rather than showing nothing.
     expect(await screen.findByRole("button", { name: /Data Structure/ })).toBeTruthy();
   });
 

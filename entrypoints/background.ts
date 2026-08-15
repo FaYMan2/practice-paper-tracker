@@ -11,6 +11,7 @@
 import { defineBackground } from "wxt/utils/define-background";
 import { browser } from "wxt/browser";
 import { handleMessage } from "../services/messages";
+import { errorReply } from "../utils/messaging";
 import { openDashboard } from "../services/toolbar";
 import type { Message } from "../types";
 
@@ -26,7 +27,8 @@ export default defineBackground(() => {
       .then(sendResponse)
       .catch((error: unknown) => {
         console.error("[pptr] handler failed", message?.kind, error);
-        sendResponse({ error: error instanceof Error ? error.message : String(error) });
+        // Marked, so the caller reads it as a failure rather than as data.
+        sendResponse(errorReply(error));
       });
 
     // Keeps the message channel open for the async response.
