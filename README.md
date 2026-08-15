@@ -57,6 +57,18 @@ The subject hierarchy is scraped from the site's own topic-wise page, so it matc
 
 Totals add up subjects only, never a subject *and* its topics: `/gate-cse/data-structure` serves every question `stack` serves, so adding both would count each answer twice.
 
+### Index a whole topic
+
+Counts start as a floor, because the tracker only knows about pages you've opened — `at least 12 / 465`. The progress strip offers **Index this topic**, which walks the rest of that topic's pages in the background of the tab and records what's on them. After it finishes the counts are real totals, the partial-index note goes away, and resume can point at your actual next unanswered question instead of estimating.
+
+It never answers anything — a crawl records that a question exists, nothing more. It's opt-in per topic because it costs the site around ninety requests for a large subject, it goes one page at a time with a pause between each, and you can stop it at any point and pick up later from where it stopped.
+
+### Star the ones worth returning to
+
+A star beside each question, and a **Starred** filter in the dashboard drill-down. It's per question rather than per row, so starring in one topic stars it everywhere that question appears.
+
+This is the only thing in the database that isn't derived from your answers, so it's also the only thing a full rebuild has to carry across untouched.
+
 ### It tells you when it breaks
 
 The site is WordPress and its markup can change without warning. A self-check runs on every page; if the selectors stop matching, the toolbar icon shows a `!` rather than silently recording nothing for months.
@@ -98,10 +110,6 @@ Bear in mind it lives in your browser profile, so clearing extension data or wip
 
 Roughly in order:
 
-**Coverage crawl** — an opt-in, per-topic background pass that fills in the questions you haven't browsed yet, so counts stop being a floor.
-
-**Manual starring** — flag questions to revisit, independently of whether you got them right.
-
 **Export and import** — a JSON dump so a profile wipe doesn't cost you months of tracking.
 
 **Spaced repetition** — the attempt log already carries a timestamp and verdict for every attempt, so a review queue of questions you got wrong is mostly scheduling on top of data that already exists.
@@ -140,6 +148,7 @@ A few things in the code look odd and are load-bearing. Worth knowing so a revie
 - **Never derive a verdict yourself.** The site already implements the MSQ countdown and the NAT range check. Read its stamp instead of reimplementing them.
 - **The database belongs to the background worker.** IndexedDB opened from a content script lives in practicepaper.in's origin, where the extension's own pages can't reach it. Content scripts message the background; they never write directly.
 - **React stops at the dashboard.** The content script is plain DOM on purpose: it is injected into someone else's page and every kilobyte is paid on each page load. The dashboard is our own page and a real application, so it gets React and its charts — and none of that ships to the site.
+- **The crawl runs in the content script, not the worker.** An MV3 service worker has no `DOMParser`, and parsing fetched HTML any other way would be a second copy of `utils/selectors`. The trade is that a crawl belongs to its tab.
 - **Every DOM assumption lives in `utils/selectors`.** Add selectors there, not inline, and extend `selfCheck` when you add one worth monitoring.
 
 ### Layout
