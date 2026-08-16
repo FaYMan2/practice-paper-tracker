@@ -4,7 +4,7 @@ import { db, INDEX, relatedSlugsOf, type TrackerDB } from "../../utils/db";
 import { refreshSummariesFor } from "../../utils/summary";
 import type { MessageKind } from "../../utils/messaging";
 import type { AttemptInput, QuestionRecord, ResponseMap } from "../../types";
-import { upsertTopic } from "./topics";
+import { upsertTopic, withParents } from "./topics";
 
 function projectAttempt(
   attempt: AttemptInput,
@@ -34,19 +34,21 @@ function isConstraintError(error: unknown): boolean {
  * Every topic whose figures this answer changes.
  *
  * One question sits in more than one place: the topic whose page it was
- * answered on, any other topic listing the same question, and the child topic
- * the site files it under. Refreshing only the page's own topic is what left
- * the others reading zero until something rebuilt everything.
+ * answered on, any other topic listing the same question, the child topic the
+ * site files it under, and the subject each of those sits beneath. Refreshing
+ * only the page's own topic is what left the others reading zero until
+ * something rebuilt everything.
  */
 async function topicsAffectedBy(
   attempt: AttemptInput,
   database: TrackerDB,
 ): Promise<string[]> {
   const rows = await database.rows.where(INDEX.rowGoId).equals(attempt.goId).toArray();
-  return [
+  const direct = [
     attempt.topicSlug,
     ...rows.flatMap((row) => [row.topicSlug, ...relatedSlugsOf(row)]),
   ];
+  return await withParents(database, direct);
 }
 
 /**

@@ -137,29 +137,60 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
 }
 
 /**
- * Every question known to belong to this topic, from wherever it was seen.
+ * Combines a topic's own rows with rows that count towards it from elsewhere.
  *
- * A topic's own pages are only one source. The site labels each question with
- * the other topic it is filed under — a Probability Theory question listed on
- * the Discrete Mathematics page says so beneath itself — so answering it there
- * is answering it here, and a topic whose pages have never been opened can
- * still show real progress.
- *
- * Borrowed rows are deduplicated against the topic's own by question id, and
- * marked, because their `ordinal` is a position in *that* topic's numbering and
- * would send a resume link to the wrong page of this one.
+ * Borrowed rows are deduplicated by question id — against the topic's own rows
+ * first, then against each other, since the same question can reach a subject
+ * from two of its topics at once. Once deduplicated they are *marked*, because
+ * a borrowed row's `ordinal` is a position in the numbering of the topic it was
+ * seen under and following it here would open the wrong page entirely.
  */
-async function topicRows(slug: string, database: TrackerDB): Promise<TopicRowInput[]> {
-  const own = await database.rows.where(INDEX.rowTopicSlug).equals(slug).toArray();
-  const elsewhere = await database.rows.where(INDEX.rowRelatedSlugs).equals(slug).toArray();
-
+function combineRows(own: RowRecord[], elsewhere: RowRecord[]): TopicRowInput[] {
   const seen = new Set(own.map((row) => row.goId));
-  const borrowed = elsewhere.filter((row) => !seen.has(row.goId));
+  const borrowed = elsewhere.filter((row) => {
+    if (seen.has(row.goId)) return false;
+    seen.add(row.goId);
+    return true;
+  });
 
   return [
     ...own.map((row) => toRowInput(row, false)),
     ...borrowed.map((row) => toRowInput(row, true)),
   ];
+}
+
+/**
+ * Every question known to belong to this topic, from wherever it was seen.
+ *
+ * A topic's own pages are only one source, and for a subject they are usually
+ * the *worst* source, because there are two others:
+ *
+ * - The site labels each question with the other topic it is filed under — a
+ *   Probability Theory question listed on the Discrete Mathematics page says so
+ *   beneath itself — so answering it there is answering it here.
+ * - Every question in a topic is a question in the subject that topic sits
+ *   under. `/gate-cse/computer-organization` serves everything
+ *   `/gate-cse/pipeline-processor` serves, so answering it there is answering it
+ *   in Computer Organization, whether or not the site printed the label.
+ *
+ * That second source is what was missing. A subject counted only the handful of
+ * questions the site happened to label with it — sixty questions indexed under
+ * Pipeline Processor, nine of them answered, and Computer Organization reported
+ * four of five, because five was all it had been labelled with.
+ */
+async function topicRows(slug: string, database: TrackerDB): Promise<TopicRowInput[]> {
+  const own = await database.rows.where(INDEX.rowTopicSlug).equals(slug).toArray();
+  const labelled = await database.rows.where(INDEX.rowRelatedSlugs).equals(slug).toArray();
+
+  const children = await database.topics.where(INDEX.topicParentSlug).equals(slug).primaryKeys();
+  const beneath = children.length
+    ? await database.rows
+        .where(INDEX.rowTopicSlug)
+        .anyOf(children as string[])
+        .toArray()
+    : [];
+
+  return combineRows(own, [...labelled, ...beneath]);
 }
 
 function toRowInput(row: RowRecord, borrowed: boolean): TopicRowInput {
@@ -232,15 +263,41 @@ export async function buildTopicSummary(
 }
 
 /**
+ * Every topic a single row counts towards besides the one it was seen under:
+ * the topics the site labelled it with, and the subject its own topic sits
+ * under. Both are the same claim — that this question belongs there too.
+ */
+function creditedTo(row: RowRecord, parentOf: Map<string, string | null>): string[] {
+  const parent = parentOf.get(row.topicSlug) ?? null;
+  return R.uniq([...relatedSlugsOf(row), ...(parent === null ? [] : [parent])]);
+}
+
+/**
  * Files every row under each topic it counts towards, in one pass.
  *
  * The per-topic query does the same thing one slug at a time; doing it in
  * memory is what keeps a full rebuild to three table reads instead of three
  * hundred, which matters because the dashboard now rebuilds on every load.
+ *
+ * This must agree with `topicRows` exactly. Two code paths computing the same
+ * figures differently is how a dashboard and a progress strip come to disagree
+ * about the same topic.
  */
-function groupRowsBySlug(rows: RowRecord[]): Map<string, TopicRowInput[]> {
+function groupRowsBySlug(
+  rows: RowRecord[],
+  parentOf: Map<string, string | null>,
+): Map<string, TopicRowInput[]> {
   const grouped = new Map<string, TopicRowInput[]>();
-  const ownGoIds = new Map<string, Set<string>>();
+  const claimed = new Map<string, Set<string>>();
+
+  const goIdsFor = (slug: string): Set<string> => {
+    const existing = claimed.get(slug);
+    if (existing) return existing;
+
+    const fresh = new Set<string>();
+    claimed.set(slug, fresh);
+    return fresh;
+  };
 
   const push = (slug: string, input: TopicRowInput): void => {
     grouped.set(slug, [...(grouped.get(slug) ?? []), input]);
@@ -248,15 +305,20 @@ function groupRowsBySlug(rows: RowRecord[]): Map<string, TopicRowInput[]> {
 
   rows.forEach((row) => {
     push(row.topicSlug, toRowInput(row, false));
-    ownGoIds.set(row.topicSlug, (ownGoIds.get(row.topicSlug) ?? new Set()).add(row.goId));
+    goIdsFor(row.topicSlug).add(row.goId);
   });
 
   // Second pass, because a row is only borrowed where the topic has no row of
   // its own for that question — which is not known until the first pass ends.
+  // The same set then absorbs the borrowed ones, so a question reaching a
+  // subject from two of its topics is counted once.
   rows.forEach((row) => {
-    relatedSlugsOf(row)
-      .filter((slug) => !ownGoIds.get(slug)?.has(row.goId))
-      .forEach((slug) => push(slug, toRowInput(row, true)));
+    creditedTo(row, parentOf)
+      .filter((slug) => !goIdsFor(slug).has(row.goId))
+      .forEach((slug) => {
+        goIdsFor(slug).add(row.goId);
+        push(slug, toRowInput(row, true));
+      });
   });
 
   return grouped;
@@ -276,9 +338,11 @@ export async function buildAllSummaries(database: TrackerDB = db()): Promise<Top
     database.questions.toArray(),
   ]);
 
-  const grouped = groupRowsBySlug(rows);
-  const facts = factsFrom(questions);
   const bySlug = new Map(topics.map((topic) => [topic.slug, topic]));
+  const parentOf = new Map(topics.map((topic) => [topic.slug, topic.parentSlug]));
+
+  const grouped = groupRowsBySlug(rows, parentOf);
+  const facts = factsFrom(questions);
   const slugs = R.union(R.pluck("slug", topics), [...grouped.keys()]);
 
   return slugs.map((slug) => summaryFor(slug, bySlug.get(slug), grouped.get(slug) ?? [], facts));
