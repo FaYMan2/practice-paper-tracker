@@ -7,6 +7,7 @@
 
 import type { MessageKind } from "../utils/messaging/constants";
 import type { Backup, ImportOutcome } from "../utils/backup/types";
+import type { ReviewQueue } from "../utils/review/types";
 import type { AttemptInput } from "./attempt";
 import type { DiagnosticRecord } from "./diagnostic";
 import type { QuestionStatus, QuestionType, Verdict } from "./question";
@@ -173,6 +174,16 @@ export interface RebuildAllMessage {
   kind: MessageKind.RebuildAll;
 }
 
+/**
+ * Asks which questions are worth seeing again.
+ *
+ * Carries no cursor or page: the schedule is recomputed from the attempt log on
+ * every call, so there is no server-side position to keep in step.
+ */
+export interface GetReviewQueueMessage {
+  kind: MessageKind.GetReviewQueue;
+}
+
 /** Asks for the whole database as one plain object, for saving to a file. */
 export interface ExportBackupMessage {
   kind: MessageKind.ExportBackup;
@@ -203,6 +214,7 @@ export type Message =
   | ReportHierarchyMessage
   | ReportDiagnosticMessage
   | RebuildAllMessage
+  | GetReviewQueueMessage
   | ExportBackupMessage
   | ImportBackupMessage;
 
@@ -247,6 +259,7 @@ export interface ResponseMap {
   [MessageKind.ReportHierarchy]: ReportHierarchyResponse;
   [MessageKind.ReportDiagnostic]: ReportDiagnosticResponse;
   [MessageKind.RebuildAll]: RebuildAllResponse;
+  [MessageKind.GetReviewQueue]: ReviewQueue;
   [MessageKind.ExportBackup]: Backup;
   [MessageKind.ImportBackup]: ImportOutcome;
 }

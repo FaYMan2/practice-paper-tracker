@@ -71,6 +71,20 @@ A star beside each question, and a **Starred** filter in the dashboard drill-dow
 
 This is the only thing in the database that isn't derived from your answers, so it's also the only thing a full rebuild has to carry across untouched.
 
+### Spaced repetition for the ones you got wrong
+
+Get a question wrong and it joins a review rotation: due again tomorrow, then six days later, then at widening intervals for as long as you keep getting it right. Miss it again and it goes back to the start, and climbs more slowly the next time. Once it's been right often enough to be due in three months, it stops appearing — a syllabus is something you finish, unlike a flashcard deck.
+
+Questions you've only ever got right never enter. Putting them there would bury the ones that matter.
+
+The **Review** tab shows the rotation two ways. **By day** is a month calendar carrying the questions themselves, so you can see what is coming as well as what is late; picking a day lists it beside the grid. **By topic** is the subject hierarchy as a navigator — subjects collapse, and choosing one puts just its questions in the table.
+
+Both show the whole rotation rather than only what's due, because every question in it was answered wrong at least once and "wrong" can't be the distinction. What separates them is a tag reading what happened *since*: **Struggling** (missed more than once, not right since), **Relearning** (missed once), **On track** (right since the miss, spacing out). Starred sits alongside those rather than replacing one, since a question can be both.
+
+There's no review mode: you answer on the real page against the site's own marking, and the attempt that produces reschedules it. A separate review screen would mean a second copy of every question and a second implementation of the grading.
+
+The schedule itself is stored nowhere. SM-2 is a deterministic fold over a question's attempts, so it's recomputed from the log whenever it's needed — the same way the pass/fail state is. Nothing to migrate, nothing extra in a backup, and no second copy that can disagree with what you actually answered.
+
 ### Export, import, and a rebuild button
 
 At the foot of the dashboard: **Export a backup** writes the whole database to one JSON file — every answer with the option you picked, plus the questions, rows and topics. **Import a backup** merges one back in.
@@ -121,8 +135,6 @@ Bear in mind it lives in your browser profile, so clearing extension data or wip
 ## Upcoming
 
 Roughly in order:
-
-**Spaced repetition** — the attempt log already carries a timestamp and verdict for every attempt, so a review queue of questions you got wrong is mostly scheduling on top of data that already exists.
 
 **Weak-area heatmap** — accuracy per child topic against the parent subject, turning "I should revise data structures" into "your hashing accuracy is 40% across 15 attempts".
 

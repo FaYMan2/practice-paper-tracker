@@ -5,11 +5,10 @@
  * middle-click and open-in-new-tab keep working without any code.
  */
 
-import "./ResumeActions.css";
-
 import { navigationPlans } from "../../../utils/resume";
 import type { ResumePlan } from "../../../utils/resume";
 import type { TopicSummary } from "../../../types";
+import { Button } from "../ui";
 import { ACTION_LABEL, ACTION_TOOLTIP } from "./constants";
 
 export * from "./constants";
@@ -23,19 +22,24 @@ export function ResumeActions({ summary }: ResumeActionsProps) {
   if (plans.length === 0) return null;
 
   return (
-    <div className="actions">
+    <div className="flex flex-wrap justify-end gap-2">
       {plans.map((plan) => (
-        <a
+        <Button
           key={plan.kind}
-          className={`action${plan.kind === "last" ? " action-secondary" : ""}`}
-          href={plan.href}
-          target="_blank"
-          rel="noreferrer"
-          title={`${ACTION_TOOLTIP[plan.kind]} — page ${plan.pageNo}, question ${plan.ordinal}`}
-          onClick={(event) => event.stopPropagation()}
+          asChild
+          size="sm"
+          variant={plan.kind === "last" ? "outline" : "solid"}
         >
-          {ACTION_LABEL[plan.kind]}
-        </a>
+          <a
+            href={plan.href}
+            target="_blank"
+            rel="noreferrer"
+            title={`${ACTION_TOOLTIP[plan.kind]} — page ${plan.pageNo}, question ${plan.ordinal}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {ACTION_LABEL[plan.kind]}
+          </a>
+        </Button>
       ))}
     </div>
   );

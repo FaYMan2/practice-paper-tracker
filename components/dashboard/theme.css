@@ -1,64 +1,110 @@
 /*
- * Page-level styling for the dashboard.
+ * The dashboard's design system.
  *
- * Unlike the injected UI, this owns the whole document, so the tokens and the
- * base rules live here and each component styles only itself.
+ * Tailwind lives here and only here. The injected UI one folder up keeps its
+ * own hand-written CSS: it is loaded on every practicepaper.in page, where a
+ * utility framework would be weight paid for markup that barely changes.
+ *
+ * The palette is warm rather than the usual neutral grey. That is the whole
+ * answer to "why does this not look like every other dashboard": a stone base
+ * with a terracotta accent, and colour reserved for things that mean something
+ * — right, wrong, overdue. Nothing here is decorative.
  */
 
-:root {
-  --ink: #1c1917;
-  --muted: #78716c;
-  --faint: #a8a29e;
-  --line: #e7e5e4;
-  --surface: #ffffff;
-  --page: #f7f7f5;
-  --raised: #fafaf9;
+/*
+ * Sources declared, not detected.
+ *
+ * `source(none)` switches off Tailwind's automatic scan and `@source` names the
+ * one directory that uses it. That makes the split from the injected UI a rule
+ * rather than a coincidence — a utility class typed into a content-script
+ * component simply will not exist — and it stops the generated CSS depending on
+ * which directory a build happens to be rooted at.
+ */
+@import "tailwindcss" source(none);
+@source "./";
 
-  --accent: #c15f3c;
-  --accent-soft: #fdf0ea;
-  --correct: #15803d;
-  --correct-soft: #dcfce7;
-  --wrong: #dc2626;
-  --wrong-soft: #fee2e2;
-  --left: #d6d3d1;
+@theme {
+  /* Surfaces, warm-tinted rather than pure grey. */
+  --color-page: oklch(0.976 0.003 75);
+  --color-surface: oklch(1 0 0);
+  --color-raised: oklch(0.985 0.003 75);
+  --color-line: oklch(0.922 0.004 75);
+  --color-line-strong: oklch(0.86 0.006 75);
 
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.06);
+  /* Text, three steps and no more. */
+  --color-ink: oklch(0.24 0.008 60);
+  --color-muted: oklch(0.55 0.012 60);
+  --color-faint: oklch(0.68 0.012 60);
+
+  /* The one brand colour. Used for actions and for "you", never for data. */
+  --color-accent: oklch(0.585 0.128 42);
+  --color-accent-strong: oklch(0.5 0.14 42);
+  --color-accent-soft: oklch(0.965 0.018 42);
+
+  /* Verdicts. These three carry meaning, so they are never used for anything else. */
+  --color-correct: oklch(0.55 0.13 150);
+  --color-correct-soft: oklch(0.955 0.03 150);
+  --color-wrong: oklch(0.57 0.19 27);
+  --color-wrong-soft: oklch(0.96 0.025 27);
+  /*
+   * Named "remaining", not "left".
+   *
+   * Tailwind generates a utility per colour token, so a token called `left`
+   * produces a `text-left` that sets *colour* and shadows the built-in
+   * `text-align: left`. Every cell in the review table inherited this pale grey
+   * from the table's own alignment class, and the whole page looked washed out
+   * for a reason no amount of reading the components would reveal.
+   */
+  --color-remaining: oklch(0.88 0.005 75);
+
+  /* Overdue. Amber, so it reads as "attention" without reading as "wrong". */
+  --color-warn: oklch(0.62 0.14 65);
+  --color-warn-soft: oklch(0.965 0.035 75);
+
+  --radius-card: 0.875rem;
+
+  /* Numerals in tables must be the same width or columns cannot be read. */
+  --font-numeric: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-page);
+    color: var(--color-ink);
+    font:
+      14px/1.5 system-ui,
+      -apple-system,
+      "Segoe UI",
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * A card is a button, and a button does not inherit its colour from the page
+   * without being told to. Left out, every figure inside one renders in the
+   * browser's own washed-out button grey.
+   */
+  button {
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  /*
+   * One focus style for the whole page. Keyboard users get a visible ring;
+   * mouse users do not get one on every click.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }
 
-body {
-  margin: 0;
-  background: var(--page);
-  color: var(--ink);
-  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-button {
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-a {
-  color: var(--accent);
-}
-
-/* Figures line up in columns, which is most of what makes a table readable. */
-.num {
+@utility num {
   font-variant-numeric: tabular-nums;
-}
-
-/* The small uppercase caption under every figure. */
-.caption {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }

@@ -5,8 +5,6 @@
  * carry, so it is where a "just give me the next question" resume belongs.
  */
 
-import "./TopicTable.css";
-
 import { accuracy, statsOf, unattemptedRows } from "../../../utils/dashboard";
 import type { QuestionFilter } from "../../../utils/dashboard";
 import { NO_VALUE, formatDate, formatPercent, topicDisplayName } from "../../../utils/format";
@@ -15,6 +13,7 @@ import { NOT_STARTED, PARTIAL_INDEX_NOTE, UNKNOWN_TOTAL } from "../constants";
 import { ProgressBar } from "../ProgressBar";
 import { QuestionList } from "../QuestionList";
 import { ResumeActions } from "../ResumeActions";
+import { cn } from "../ui";
 
 export interface TopicTableProps {
   /** The subject itself, when it has a page of its own. */
@@ -42,8 +41,8 @@ function attemptedText(summary: TopicSummary): string {
 
 function Figure({ value, label }: { value: string; label: string }) {
   return (
-    <span className="row-figure">
-      <b className="num">{value}</b> {label}
+    <span className="whitespace-nowrap text-xs text-muted">
+      <b className="num text-ink">{value}</b> {label}
     </span>
   );
 }
@@ -53,7 +52,7 @@ function PartialNote({ summary }: { summary: TopicSummary }) {
 
   return (
     <span
-      className="row-note"
+      className="whitespace-nowrap text-xs text-warn italic"
       title={
         `${summary.indexedRows} of ${summary.totalFromSite ?? UNKNOWN_TOTAL} questions ` +
         "have been seen, so these counts are a floor rather than a total."
@@ -73,16 +72,16 @@ function RowFigures({ summary }: { summary: TopicSummary }) {
 
   if (summary.solvedRows === 0) {
     return (
-      <div className="row-figures">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <Figure value={attemptedText(summary)} label="attempted" />
-        <span className="row-quiet">{NOT_STARTED}</span>
+        <span className="text-xs text-faint italic">{NOT_STARTED}</span>
         <PartialNote summary={summary} />
       </div>
     );
   }
 
   return (
-    <div className="row-figures">
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <Figure value={attemptedText(summary)} label="attempted" />
       <Figure value={`${summary.correctRows}`} label="correct" />
       <Figure value={`${summary.wrongRows}`} label="wrong" />
@@ -105,14 +104,25 @@ function TopicRow({ summary, whole, expanded, onToggle }: TopicRowProps) {
   const stats = statsOf(summary);
 
   return (
-    <div className={`row${whole ? " row-whole" : ""}${expanded ? " row-open" : ""}`}>
+    <div
+      className={cn(
+        // Fixed tracks, not content-sized ones: each row is its own grid, so an
+        // `auto` column would let a row with one button shift its neighbours'
+        // bars out of line with everyone else's.
+        "grid items-center gap-x-4 gap-y-1.5 px-4 py-2.5",
+        "[grid-template-columns:minmax(0,1.2fr)_120px_minmax(0,2.4fr)_200px]",
+        "hover:bg-raised",
+        whole && "bg-raised font-semibold",
+        expanded && "bg-accent-soft",
+      )}
+    >
       <button
         type="button"
-        className="row-name"
+        className="flex items-center gap-1.5 border-0 bg-transparent p-0 text-left text-[13px] font-semibold text-ink"
         aria-expanded={expanded}
         onClick={() => onToggle(summary.slug)}
       >
-        <span className="row-caret" aria-hidden="true">
+        <span className="text-faint" aria-hidden="true">
           {expanded ? "▾" : "▸"}
         </span>
         {whole ? `All of ${topicName(summary)}` : topicName(summary)}
@@ -134,11 +144,11 @@ export function TopicTable(props: TopicTableProps) {
   ];
 
   return (
-    <div className="table">
+    <div className="overflow-hidden rounded-lg border border-line bg-surface">
       {rows.map(({ summary, whole }) => {
         const expanded = props.expandedSlug === summary.slug;
         return (
-          <div className="table-entry" key={summary.slug}>
+          <div className="border-t border-line first:border-t-0" key={summary.slug}>
             <TopicRow
               summary={summary}
               whole={whole}

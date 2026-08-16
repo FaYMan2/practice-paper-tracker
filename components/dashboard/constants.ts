@@ -1,5 +1,8 @@
 /** Labels and chart colours for the dashboard. */
 
+import { SubjectView } from "../../utils/dashboard";
+import type { SegmentedOption } from "./ui";
+
 /**
  * Chart fills. Duplicated from the CSS tokens because Recharts takes colours as
  * props rather than from a stylesheet; these three must stay in step with
@@ -47,3 +50,23 @@ export const CLOSE_LABEL = "Close";
 
 /** Shown on a subject card when the site's own question count is unknown. */
 export const UNKNOWN_TOTAL = "?";
+
+/**
+ * The two ways to look at the subject grid.
+ *
+ * "Started" rather than "In progress": a subject you have finished is still one
+ * you want to see, and "in progress" would read as excluding it.
+ */
+export const SUBJECT_VIEWS: SegmentedOption<SubjectView>[] = [
+  { value: SubjectView.Started, label: "Started" },
+  { value: SubjectView.All, label: "All subjects" },
+];
+
+export const SUBJECT_VIEW_LABEL = "Which subjects to show";
+
+/** Follows the count of subjects the "Started" view is leaving out. */
+export const UNSTARTED_HINT = "not started yet";
+
+/** Follows the count when opening the dashboard found records out of step. */
+export const REPAIRED_NOTE =
+  "had drifted from the answer log and were repaired. The figures below are the corrected ones.";

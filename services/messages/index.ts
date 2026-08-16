@@ -9,6 +9,7 @@ import { MessageKind } from "../../utils/messaging";
 import type { Message } from "../../types";
 import { recordAttempt } from "./attempts";
 import { exportBackup, importBackup } from "./backup";
+import { reviewQueue } from "./review";
 import { topicPages } from "./coverage";
 import { topicDetail } from "./details";
 import { reportDiagnostic } from "./diagnostics";
@@ -55,6 +56,9 @@ export async function handleMessage(message: Message): Promise<unknown> {
 
     case MessageKind.RebuildAll:
       return await rebuildAll();
+
+    case MessageKind.GetReviewQueue:
+      return await reviewQueue();
 
     case MessageKind.ExportBackup:
       return await exportBackup();
