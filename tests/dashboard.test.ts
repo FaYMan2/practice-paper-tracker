@@ -93,6 +93,22 @@ describe("stats", () => {
     expect(unknown.totalFromSite).toBeNull();
   });
 
+  it("counts a subject with no site total by what it has indexed", () => {
+    // Its answers are already in the numerator. Leaving its questions out of
+    // the denominator is what showed "≥4 / 465" with the 4 and the 465 coming
+    // from different subjects.
+    const unopened = summary("computer-organization", {
+      solvedRows: 9,
+      correctRows: 6,
+      indexedRows: 60,
+    });
+
+    const total = sumStats([statsOf(CHILD), statsOf(unopened)]);
+
+    expect(total.totalFromSite).toBe(94);
+    expect(total.solvedRows).toBe(21);
+  });
+
   it("is only fully indexed when every part is", () => {
     expect(sumStats([statsOf(SUBJECT), statsOf(CHILD)]).fullyIndexed).toBe(false);
     expect(sumStats([statsOf(SUBJECT)]).fullyIndexed).toBe(true);

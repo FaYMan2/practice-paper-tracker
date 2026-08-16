@@ -256,6 +256,113 @@ describe("cross-topic attribution", () => {
 });
 
 /**
+ * A subject serves every question its topics serve, so what is answered in a
+ * topic is answered in the subject — whether or not the site printed the label.
+ *
+ * The figures below are the real ones from a Pipeline Processor crawl: sixty
+ * rows indexed, nine answered, and only five of them carrying the "Computer
+ * Organization" label, because the other fifty-five were recorded before
+ * cross-topic attribution existed. Computer Organization reported four of five.
+ */
+describe("a subject and the topics beneath it", () => {
+  const ANSWERED = 9;
+  const CORRECT = 6;
+
+  async function indexATopicUnderIt(): Promise<void> {
+    await recordHierarchy([
+      entry("computer-organization", null, "Computer Organization"),
+      entry("pipeline-processor", "computer-organization", "Pipeline Processor"),
+    ]);
+    await db.topics.update("pipeline-processor", { totalFromSite: 60 });
+
+    await db.rows.bulkPut(
+      Array.from({ length: 60 }, (_, index) =>
+        row(index + 1, `q${index + 1}`, {
+          topicSlug: "pipeline-processor",
+          // Only the handful seen since the labels were being recorded.
+          relatedSlugs: index >= 5 && index < 10 ? ["computer-organization"] : [],
+        }),
+      ),
+    );
+    await db.questions.bulkPut(
+      Array.from({ length: ANSWERED }, (_, index) =>
+        question(`q${index + 1}`, index < CORRECT ? {} : { status: "wrong" }),
+      ),
+    );
+  }
+
+  it("counts everything its topics have indexed, not just what it was labelled with", async () => {
+    await indexATopicUnderIt();
+    const subject = await buildTopicSummary("computer-organization", db);
+
+    expect(subject).toMatchObject({
+      indexedRows: 60,
+      solvedRows: ANSWERED,
+      correctRows: CORRECT,
+      wrongRows: ANSWERED - CORRECT,
+    });
+  });
+
+  it("agrees with itself whether one topic is rebuilt or all of them", async () => {
+    // Two code paths compute this — one per slug, one in a single pass over
+    // every row — and a dashboard disagreeing with a progress strip about the
+    // same subject is worse than either being wrong on its own.
+    await indexATopicUnderIt();
+
+    const one = await buildTopicSummary("computer-organization", db);
+    const all = await buildAllSummaries(db);
+
+    expect(all.find((summary) => summary.slug === "computer-organization")).toEqual(one);
+  });
+
+  it("offers no resume target from a topic's row", async () => {
+    // Ordinal 9 numbers a position in Pipeline Processor. Following it into the
+    // subject would open the wrong page of a different listing.
+    await indexATopicUnderIt();
+    const subject = await buildTopicSummary("computer-organization", db);
+
+    expect(subject?.lastAnsweredOrdinal).toBeNull();
+  });
+
+  it("counts a question reaching a subject from two of its topics once", async () => {
+    await recordHierarchy([
+      entry("data-structure", null, "Data Structure"),
+      entry("stack", "data-structure", "Stack"),
+      entry("queue", "data-structure", "Queue"),
+    ]);
+    // The same question, listed under both topics and labelled with the subject.
+    await db.rows.bulkPut([
+      row(1, "49487", { topicSlug: "stack", relatedSlugs: ["data-structure"] }),
+      row(4, "49487", { topicSlug: "queue", relatedSlugs: ["data-structure"] }),
+    ]);
+    await db.questions.put(question("49487"));
+
+    const subject = await buildTopicSummary("data-structure", db);
+
+    expect(subject?.indexedRows).toBe(1);
+    expect(subject?.solvedRows).toBe(1);
+  });
+
+  it("gives way to the subject's own rows once its pages are opened", async () => {
+    // The subject page carries every question its topics carry, so indexing it
+    // must not double what was already counted.
+    await indexATopicUnderIt();
+    await db.rows.bulkPut(
+      Array.from({ length: 60 }, (_, index) =>
+        row(index + 1, `q${index + 1}`, { topicSlug: "computer-organization" }),
+      ),
+    );
+
+    const subject = await buildTopicSummary("computer-organization", db);
+
+    expect(subject?.indexedRows).toBe(60);
+    expect(subject?.solvedRows).toBe(ANSWERED);
+    // And now the ordinals are its own, so resume works.
+    expect(subject?.lastAnsweredOrdinal).toBe(ANSWERED);
+  });
+});
+
+/**
  * The mirror is what the injected UI paints from, so a topic left out of a
  * refresh reads zero on the page even though the database knows better.
  */
@@ -287,6 +394,43 @@ describe("summary fan-out", () => {
     await indexTheParentPage();
 
     expect((await getSummary("propositional-logic"))?.indexedRows).toBe(1);
+  });
+
+  it("mirrors the subject when a question in one of its topics is answered", async () => {
+    // The strip on the subject's own page paints from the mirror, so a subject
+    // left out of the fan-out keeps showing its old numbers until something
+    // rebuilds the lot — even though the database already knows better.
+    await recordHierarchy([
+      entry("computer-organization", null, "Computer Organization"),
+      entry("pipeline-processor", "computer-organization", "Pipeline Processor"),
+    ]);
+    await observePage({
+      topicSlug: "pipeline-processor",
+      title: "Pipeline Processor",
+      pageNo: 1,
+      totalFromSite: 60,
+      totalMarksFromSite: 88,
+      rows: [observed(1, "523099", [])],
+    });
+
+    expect((await getSummary("computer-organization"))?.indexedRows).toBe(1);
+
+    await recordAttempt({
+      eventId: "523099:load-3",
+      goId: "523099",
+      verdict: "correct",
+      choices: [],
+      ts: 7_000,
+      topicSlug: "pipeline-processor",
+      ordinal: 1,
+      pageNo: 1,
+      examSlug: "gate-cse-2026-set-2",
+      type: "NAT",
+      marks: 2,
+      pageLoadId: "load-3",
+    });
+
+    expect((await getSummary("computer-organization"))?.correctRows).toBe(1);
   });
 
   it("mirrors the child topic when a question is answered on the parent's page", async () => {

@@ -11,7 +11,7 @@ import type {
   RowRecord,
 } from "../../types";
 import { reconcileProvisional } from "./reconcile";
-import { upsertTopic } from "./topics";
+import { upsertTopic, withParents } from "./topics";
 
 function toRowRecord(topicSlug: string, row: ObservedRow, now: number): RowRecord {
   const record: RowRecord = {
@@ -100,11 +100,14 @@ export async function observePage(
   );
 
   // Not just this page's topic: each question is also filed under a child
-  // topic, and its figures change the moment this page is indexed.
-  await refreshSummariesFor([
-    page.topicSlug,
-    ...page.rows.flatMap((row) => row.relatedSlugs),
-  ]);
+  // topic, and counts towards the subject this topic sits under. All of their
+  // figures change the moment this page is indexed.
+  await refreshSummariesFor(
+    await withParents(database, [
+      page.topicSlug,
+      ...page.rows.flatMap((row) => row.relatedSlugs),
+    ]),
+  );
   const observed: ResponseMap[MessageKind.ObservePage] = { rows: page.rows.length };
   return observed;
 }

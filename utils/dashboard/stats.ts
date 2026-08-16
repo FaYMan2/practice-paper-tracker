@@ -37,6 +37,18 @@ function sumNullable(values: (number | null)[]): number | null {
   return known.length === 0 ? null : R.sum(known);
 }
 
+/**
+ * What each part contributes to a total, when some parts have no site figure.
+ *
+ * A subject whose own page has never been opened has no "out of N", but it does
+ * have rows we know about — and its answers are already in the numerator.
+ * Leaving it out of the denominator is what produced "≥4 / 465", where the 465
+ * came from one subject and the 4 came from another.
+ */
+function countableTotal(part: TopicStats): number | null {
+  return part.totalFromSite ?? (part.indexedRows > 0 ? part.indexedRows : null);
+}
+
 function latest(values: (number | null)[]): number | null {
   const known = R.filter(R.isNotNil, values);
   return known.length === 0 ? null : Math.max(...known);
@@ -58,7 +70,7 @@ export function sumStats(parts: TopicStats[]): TopicStats {
     wrongRows: R.sum(R.pluck("wrongRows", parts)),
     indexedRows: R.sum(R.pluck("indexedRows", parts)),
     marksEarned: R.sum(R.pluck("marksEarned", parts)),
-    totalFromSite: sumNullable(parts.map((part) => part.totalFromSite)),
+    totalFromSite: sumNullable(parts.map(countableTotal)),
     totalMarksFromSite: sumNullable(parts.map((part) => part.totalMarksFromSite)),
     fullyIndexed: parts.every((part) => part.fullyIndexed),
     lastActivityAt: latest(parts.map((part) => part.lastActivityAt)),
