@@ -71,6 +71,16 @@ A star beside each question, and a **Starred** filter in the dashboard drill-dow
 
 This is the only thing in the database that isn't derived from your answers, so it's also the only thing a full rebuild has to carry across untouched.
 
+### Spaced repetition for the ones you got wrong
+
+Get a question wrong and it joins a review rotation: due again tomorrow, then six days later, then at widening intervals for as long as you keep getting it right. Miss it again and it goes back to the start, and climbs more slowly the next time. Once it's been right often enough to be due in three months, it stops appearing — a syllabus is something you finish, unlike a flashcard deck.
+
+Questions you've only ever got right never enter. Putting them there would bury the ones that matter.
+
+The dashboard lists what's due, longest wait first, each linking straight to that question on the site. There's no review mode: you answer it on the real page against the site's own marking, and the attempt that produces reschedules it. A separate review screen would mean a second copy of every question and a second implementation of the grading.
+
+The schedule itself is stored nowhere. SM-2 is a deterministic fold over a question's attempts, so it's recomputed from the log whenever it's needed — the same way the pass/fail state is. Nothing to migrate, nothing extra in a backup, and no second copy that can disagree with what you actually answered.
+
 ### Export, import, and a rebuild button
 
 At the foot of the dashboard: **Export a backup** writes the whole database to one JSON file — every answer with the option you picked, plus the questions, rows and topics. **Import a backup** merges one back in.
@@ -121,8 +131,6 @@ Bear in mind it lives in your browser profile, so clearing extension data or wip
 ## Upcoming
 
 Roughly in order:
-
-**Spaced repetition** — the attempt log already carries a timestamp and verdict for every attempt, so a review queue of questions you got wrong is mostly scheduling on top of data that already exists.
 
 **Weak-area heatmap** — accuracy per child topic against the parent subject, turning "I should revise data structures" into "your hashing accuracy is 40% across 15 attempts".
 
