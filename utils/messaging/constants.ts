@@ -18,6 +18,8 @@ export enum MessageKind {
   ReportHierarchy = "reportHierarchy",
   ReportDiagnostic = "reportDiagnostic",
   RebuildAll = "rebuildAll",
+  ExportBackup = "exportBackup",
+  ImportBackup = "importBackup",
 }
 
 /**

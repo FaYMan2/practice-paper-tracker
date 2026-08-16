@@ -6,6 +6,12 @@ import { buildView } from "../../utils/dashboard";
 import type { TopicDetail } from "../../types";
 import type { DashboardView } from "../../utils/dashboard";
 
+/** The view, and how many question records had to be repaired to build it. */
+export interface LoadedView {
+  view: DashboardView;
+  repaired: number;
+}
+
 /**
  * Figures come from the database, not from the `storage.local` mirror.
  *
@@ -14,21 +20,28 @@ import type { DashboardView } from "../../utils/dashboard";
  * and a cache it does not need is a cache that can be wrong: reading through
  * the background means what is on screen is what is stored.
  */
-export async function loadView(): Promise<DashboardView> {
+export async function loadView(): Promise<LoadedView> {
   const result = await sendToBackground({ kind: MessageKind.GetDashboard });
-  if (result.ok) return buildView(result.data);
+  if (result.ok) {
+    const loaded: LoadedView = {
+      view: buildView(result.data.summaries),
+      repaired: result.data.repaired,
+    };
+    return loaded;
+  }
 
   // The worker is unreachable, which on an extension page means it is being
   // reloaded. The mirror is the last thing it wrote, so it beats a blank page.
   console.warn("[pptr] falling back to the summary mirror", result.error);
-  return buildView(await getSummaries());
+  const fallback: LoadedView = { view: buildView(await getSummaries()), repaired: 0 };
+  return fallback;
 }
 
 /**
  * The mirror is still watched, but only as a signal that something changed —
  * every write to it is followed by a fresh read of the database.
  */
-export function watchView(onChange: (view: DashboardView) => void): () => void {
+export function watchView(onChange: (loaded: LoadedView) => void): () => void {
   return watchSummaries(() => {
     void loadView().then(onChange);
   });

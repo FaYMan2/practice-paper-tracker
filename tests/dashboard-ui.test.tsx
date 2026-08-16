@@ -5,7 +5,15 @@ import { App, Overview, QuestionList, SubjectGrid, TopicTable } from "../compone
 import { QuestionFilter } from "../utils/dashboard";
 import { mergeSummaries } from "../utils/summary/mirror";
 import { MessageKind, errorReply } from "../utils/messaging";
-import type { Message, TopicDetail, TopicSummary } from "../types";
+import type {
+  DashboardPayload,
+  Message,
+  RebuildAllResponse,
+  TopicDetail,
+  TopicSummary,
+} from "../types";
+import { BackupRejection } from "../utils/backup";
+import type { Backup, ImportOutcome } from "../utils/backup";
 import { CHILD, SUBJECT, question, viewOf } from "./factories";
 
 beforeEach(() => {
@@ -200,8 +208,17 @@ describe("QuestionList", () => {
   });
 });
 
+interface WorkerOptions {
+  detail?: TopicDetail;
+  /** Question records the worker reports as having been repaired on load. */
+  repaired?: number;
+  rebuilt?: RebuildAllResponse;
+  imported?: ImportOutcome;
+  backup?: Backup;
+}
+
 /** Stands in for the background worker, dispatching the same way it does. */
-function fakeWorker(summaries: TopicSummary[], detail: TopicDetail): Message[] {
+function fakeWorker(summaries: TopicSummary[], options: WorkerOptions = {}): Message[] {
   const asked: Message[] = [];
 
   fakeBrowser.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
@@ -209,9 +226,16 @@ function fakeWorker(summaries: TopicSummary[], detail: TopicDetail): Message[] {
     asked.push(message);
 
     if (message.kind === MessageKind.GetDashboard) {
-      sendResponse(Object.fromEntries(summaries.map((entry) => [entry.slug, entry])));
+      const payload: DashboardPayload = {
+        summaries: Object.fromEntries(summaries.map((entry) => [entry.slug, entry])),
+        repaired: options.repaired ?? 0,
+      };
+      sendResponse(payload);
     }
-    if (message.kind === MessageKind.GetTopicDetail) sendResponse(detail);
+    if (message.kind === MessageKind.GetTopicDetail) sendResponse(options.detail ?? DETAIL);
+    if (message.kind === MessageKind.RebuildAll) sendResponse(options.rebuilt);
+    if (message.kind === MessageKind.ImportBackup) sendResponse(options.imported);
+    if (message.kind === MessageKind.ExportBackup) sendResponse(options.backup);
     return true;
   });
 
@@ -220,7 +244,7 @@ function fakeWorker(summaries: TopicSummary[], detail: TopicDetail): Message[] {
 
 describe("App", () => {
   it("asks for the index page before anything has been recorded", async () => {
-    fakeWorker([], DETAIL);
+    fakeWorker([]);
 
     render(<App />);
 
@@ -230,7 +254,7 @@ describe("App", () => {
   it("renders what the database says, not what the mirror cached", async () => {
     // A stale mirror must never be what the dashboard shows.
     await mergeSummaries([{ ...SUBJECT, title: "Stale name" }]);
-    fakeWorker([SUBJECT, CHILD], DETAIL);
+    fakeWorker([SUBJECT, CHILD]);
     render(<App />);
 
     expect(await screen.findByRole("button", { name: /Data Structure/ })).toBeTruthy();
@@ -252,8 +276,57 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: /Data Structure/ })).toBeTruthy();
   });
 
+  it("offers the data tools even with nothing recorded", async () => {
+    // Importing into a fresh profile is precisely when the page is empty, so
+    // hiding the tools behind having data would hide them when they are needed.
+    fakeWorker([]);
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: /Import a backup/ })).toBeTruthy();
+  });
+
+  it("says so when opening the page had to repair drifted records", async () => {
+    fakeWorker([SUBJECT, CHILD], { repaired: 3 });
+    render(<App />);
+
+    expect(await screen.findByText(/3 question records had drifted/)).toBeTruthy();
+  });
+
+  it("stays quiet when nothing needed repairing", async () => {
+    fakeWorker([SUBJECT, CHILD]);
+    render(<App />);
+
+    await screen.findByRole("button", { name: /Data Structure/ });
+    expect(screen.queryByText(/drifted/)).toBeNull();
+  });
+
+  it("rebuilds on request and reports what it did", async () => {
+    const asked = fakeWorker([SUBJECT, CHILD], { rebuilt: { questions: 412, topics: 111 } });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Rebuild the figures/ }));
+
+    expect(await screen.findByText(/Rebuilt 412 question records/)).toBeTruthy();
+    expect(asked).toContainEqual({ kind: MessageKind.RebuildAll });
+  });
+
+  it("reports a refused import without pretending anything was merged", async () => {
+    fakeWorker([SUBJECT, CHILD], {
+      imported: { ok: false, rejection: BackupRejection.NotABackup, detail: "no format field" },
+    });
+    render(<App />);
+    await screen.findByRole("button", { name: /Import a backup/ });
+
+    const picker = document.querySelector<HTMLInputElement>(".tools-picker")!;
+    fireEvent.change(picker, {
+      target: { files: [new File(['{"hello":true}'], "other.json", { type: "application/json" })] },
+    });
+
+    expect(await screen.findByText(/isn't a tracker backup/)).toBeTruthy();
+  });
+
   it("opens a subject, and asks the background for the topic's questions", async () => {
-    const asked = fakeWorker([SUBJECT, CHILD], DETAIL);
+    const asked = fakeWorker([SUBJECT, CHILD]);
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Data Structure/ }));
