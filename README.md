@@ -30,6 +30,8 @@ This works because every question on the site carries a GateOverflow link, and t
 
 It also feeds the numbers. The site labels every question with the other topic it's filed under — a probability question listed on the Discrete Mathematics page says so beneath itself — so solving it there counts towards Probability Theory too, and that topic shows real progress before you've ever opened one of its pages.
 
+A subject counts everything its topics carry, label or no label. `/gate-cse/computer-organization` serves every question `/gate-cse/pipeline-processor` serves, so answering it under the topic answers it under the subject, and a subject you've never opened still shows what you've done beneath it.
+
 ### A progress strip that isn't broken
 
 Above each question list: attempted, correct, wrong and marks for *that* topic, updating live as you answer. It replaces the site's counters, which are shared across topics and drift as soon as you switch.
@@ -69,6 +71,16 @@ A star beside each question, and a **Starred** filter in the dashboard drill-dow
 
 This is the only thing in the database that isn't derived from your answers, so it's also the only thing a full rebuild has to carry across untouched.
 
+### Export, import, and a rebuild button
+
+At the foot of the dashboard: **Export a backup** writes the whole database to one JSON file — every answer with the option you picked, plus the questions, rows and topics. **Import a backup** merges one back in.
+
+Merges, not replaces, and that distinction is the whole feature. Answers are matched on the event id they were recorded under, so importing the same file twice adds nothing the second time, and importing a file onto a profile you've kept using keeps both sides' answers rather than picking one. Nothing is ever removed by an import, a stale file can't roll back a page you've indexed since, and a star you set here survives a file that predates it.
+
+Afterwards every status and count is recomputed from the merged answer log rather than trusted from the file — neither side's cached figures have seen both halves, so only a rebuild gets it right. **Rebuild the figures** runs that same pass on demand.
+
+It also runs a check on its own. `questions` is only ever a cache of the answer log, so opening the dashboard recomputes it and compares; if anything has fallen out of step it's repaired and the page says how many. Normally that's nothing, and the point of saying it out loud is that a cache quietly correcting itself is indistinguishable from one that was never wrong.
+
 ### It tells you when it breaks
 
 The site is WordPress and its markup can change without warning. A self-check runs on every page; if the selectors stop matching, the toolbar icon shows a `!` rather than silently recording nothing for months.
@@ -102,15 +114,13 @@ Requires Node 22+ and pnpm.
 
 Everything stays in your browser — IndexedDB for the records, `chrome.storage.local` for a small cache. No account, no server, nothing leaves your machine. The extension asks for access to `practicepaper.in` and nothing else.
 
-Bear in mind it lives in your browser profile, so clearing extension data or wiping the profile takes your history with it. Export/import is on the roadmap for exactly this reason.
+Bear in mind it lives in your browser profile, so clearing extension data or wiping the profile takes your history with it. Export a backup from the dashboard now and then, and keep the file somewhere else.
 
 ---
 
 ## Upcoming
 
 Roughly in order:
-
-**Export and import** — a JSON dump so a profile wipe doesn't cost you months of tracking.
 
 **Spaced repetition** — the attempt log already carries a timestamp and verdict for every attempt, so a review queue of questions you got wrong is mostly scheduling on top of data that already exists.
 
