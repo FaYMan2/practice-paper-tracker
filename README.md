@@ -85,6 +85,14 @@ There's no review mode: you answer on the real page against the site's own marki
 
 The schedule itself is stored nowhere. SM-2 is a deterministic fold over a question's attempts, so it's recomputed from the log whenever it's needed — the same way the pass/fail state is. Nothing to migrate, nothing extra in a backup, and no second copy that can disagree with what you actually answered.
 
+### Timing a question
+
+A stopwatch sits beside each question's star. Click it and it counts up; answer the question and the stamp that records your attempt stops the clock and saves how long it took. Click a running one to throw that run away.
+
+Started by hand rather than inferred. The automatic version — start when the question scrolls into view, stop at the answer — is cheaper and measures the wrong thing: a question sits on screen while you read the one above it, scrolls past twice, and stays in view while you make tea. A clock you started is a claim you made.
+
+Nothing is recorded for a question you never timed, and a clock left running past half an hour is discarded rather than saved — a forty-minute "attempt" is a walk away from the desk, and averaging it in would poison every figure built on top of it. Timings appear against each question in the dashboard drill-down.
+
 ### Export, import, and a rebuild button
 
 At the foot of the dashboard: **Export a backup** writes the whole database to one JSON file — every answer with the option you picked, plus the questions, rows and topics. **Import a backup** merges one back in.
