@@ -11,6 +11,7 @@
 
 export * from "./App";
 export * from "./AccuracyBars";
+export * from "./DataTools";
 export * from "./EmptyState";
 export * from "./Legend";
 export * from "./Overview";

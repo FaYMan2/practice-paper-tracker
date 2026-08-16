@@ -121,15 +121,21 @@ function projectUnattempted(question: QuestionRecord): QuestionRecord {
   return reset;
 }
 
+/** What is stored against each question, and what the log says it should be. */
+interface ProjectionPass {
+  stored: Map<string, QuestionRecord>;
+  computed: QuestionRecord[];
+}
+
 /**
- * Recomputes every derived field on `questions` from the `attempts` log alone.
+ * Recomputes every `questions` row from the log, keeping the stored copies.
  *
- * Not a repair tool bolted on for emergencies — it is the executable proof that
- * `attempts` really is the source of truth. If any state has quietly come to
- * live only in a mutable field on `questions`, this function's output diverges
- * from what is stored, and the Phase 1 verification catches it.
+ * Separated from the write below because the same pass answers two questions —
+ * what to store, and whether what is stored is still right — and reading these
+ * two tables twice over to answer them separately would be the more expensive
+ * half of every dashboard load.
  */
-export async function rebuildQuestionProjections(database: TrackerDB = db()): Promise<number> {
+async function projectionPass(database: TrackerDB): Promise<ProjectionPass> {
   const attempts = await database.attempts.orderBy(INDEX.attemptTs).toArray();
   const existing = await database.questions.toArray();
 
@@ -145,9 +151,62 @@ export async function rebuildQuestionProjections(database: TrackerDB = db()): Pr
     .filter((question) => !attemptsByGoId.has(question.goId))
     .map(projectUnattempted);
 
-  const updates = [...answered, ...unanswered];
-  await database.questions.bulkPut(updates);
-  return updates.length;
+  const pass: ProjectionPass = {
+    stored: existingByGoId,
+    computed: [...answered, ...unanswered],
+  };
+  return pass;
+}
+
+/**
+ * Recomputes every derived field on `questions` from the `attempts` log alone.
+ *
+ * Not a repair tool bolted on for emergencies — it is the executable proof that
+ * `attempts` really is the source of truth. If any state has quietly come to
+ * live only in a mutable field on `questions`, this function's output diverges
+ * from what is stored, and the Phase 1 verification catches it.
+ */
+export async function rebuildQuestionProjections(database: TrackerDB = db()): Promise<number> {
+  const { computed } = await projectionPass(database);
+  await database.questions.bulkPut(computed);
+  return computed.length;
+}
+
+/**
+ * The four fields the log decides on its own.
+ *
+ * `type` and `marks` are left out deliberately. They describe the question
+ * rather than the answering of it, a row and an attempt can disagree about them
+ * for innocent reasons, and treating that as damage would report a repair on
+ * every single load.
+ */
+function sameProjection(stored: QuestionRecord, computed: QuestionRecord): boolean {
+  return (
+    stored.status === computed.status &&
+    stored.attemptCount === computed.attemptCount &&
+    stored.firstVerdict === computed.firstVerdict &&
+    stored.lastAttemptAt === computed.lastAttemptAt
+  );
+}
+
+/**
+ * Questions whose cached state no longer matches the log.
+ *
+ * Phase 1 was built on the promise that `questions` is only ever a cache and
+ * can be reconstructed from `attempts` at any time. This is that promise
+ * checked rather than assumed: anything returned here is a row that would have
+ * gone on quietly reporting the wrong status — a solve not showing on the page,
+ * a topic reading one short — until something happened to rebuild it.
+ */
+export async function driftedProjections(
+  database: TrackerDB = db(),
+): Promise<QuestionRecord[]> {
+  const { stored, computed } = await projectionPass(database);
+
+  return computed.filter((question) => {
+    const previous = stored.get(question.goId);
+    return previous === undefined || !sameProjection(previous, question);
+  });
 }
 
 /**

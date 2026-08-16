@@ -11,6 +11,8 @@ export interface DashboardData {
   view: DashboardView;
   /** True until the first read of the mirror resolves, which is near-instant. */
   loading: boolean;
+  /** Question records found out of step with the attempt log, and repaired. */
+  repaired: number;
 }
 
 /**
@@ -23,18 +25,24 @@ export interface DashboardData {
 export function useDashboard(): DashboardData {
   const [view, setView] = useState<DashboardView>(PENDING);
   const [loading, setLoading] = useState<boolean>(true);
+  const [repaired, setRepaired] = useState<number>(0);
 
   useEffect(() => {
     let live = true;
 
     void loadView().then((initial) => {
       if (!live) return;
-      setView(initial);
+      setView(initial.view);
+      setRepaired(initial.repaired);
       setLoading(false);
     });
 
     const unwatch = watchView((next) => {
-      if (live) setView(next);
+      if (!live) return;
+      setView(next.view);
+      // A later load reporting nothing wrong must not erase the first one's
+      // count: the repair happened, and the user has not read it yet.
+      if (next.repaired > 0) setRepaired(next.repaired);
     });
 
     return () => {
@@ -43,5 +51,5 @@ export function useDashboard(): DashboardData {
     };
   }, []);
 
-  return { view, loading };
+  return { view, loading, repaired };
 }

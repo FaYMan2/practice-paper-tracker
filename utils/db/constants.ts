@@ -1,4 +1,6 @@
-/** Database identity, schema and index names. */
+/** Database identity, schema, index names and record defaults. */
+
+import type { TopicRecord } from "../../types";
 
 export const DB_NAME = "practice-paper-tracker";
 
@@ -49,14 +51,35 @@ export const SCHEMA_V2: Pick<Record<TableName, string>, TableName.Rows> = {
  */
 export const SCHEMA_V3: Pick<Record<TableName, string>, TableName.Rows> = SCHEMA_V2;
 
+/**
+ * A topic row before anything is known about it.
+ *
+ * Lives beside the schema rather than with the message services because it is
+ * the record's own default: both the writer that creates a topic on first sight
+ * and the importer that fills one in from a partial file need the same answer
+ * to "what does an unknown field start as".
+ */
+export const BLANK_TOPIC: Omit<TopicRecord, "slug"> = {
+  title: null,
+  parentSlug: null,
+  totalFromSite: null,
+  totalMarksFromSite: null,
+  lastAnsweredOrdinal: null,
+  lastVisitedPage: null,
+  indexedPages: [],
+  updatedAt: 0,
+};
+
 /** Index names used in queries, so a rename is caught in one place. */
 export const INDEX = {
   attemptTs: "ts",
   attemptGoId: "goId",
+  attemptEventId: "eventId",
   questionGoId: "goId",
   rowGoId: "goId",
   rowTopicSlug: "topicSlug",
   rowRelatedSlugs: "relatedSlugs",
+  topicParentSlug: "parentSlug",
   diagnosticTs: "ts",
 } as const;
 

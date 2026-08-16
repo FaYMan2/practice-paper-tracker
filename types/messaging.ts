@@ -6,6 +6,7 @@
  */
 
 import type { MessageKind } from "../utils/messaging/constants";
+import type { Backup, ImportOutcome } from "../utils/backup/types";
 import type { AttemptInput } from "./attempt";
 import type { DiagnosticRecord } from "./diagnostic";
 import type { QuestionStatus, QuestionType, Verdict } from "./question";
@@ -117,6 +118,20 @@ export interface GetDashboardMessage {
   kind: MessageKind.GetDashboard;
 }
 
+/**
+ * The figures, plus what had to be put right to produce them.
+ *
+ * `repaired` counts questions whose cached state disagreed with the attempt log
+ * and were rebuilt from it during this load. Normally zero. It travels with the
+ * data rather than being logged quietly because a cache that needed correcting
+ * is the user's business: until this load, something on the page or in these
+ * numbers was wrong.
+ */
+export interface DashboardPayload {
+  summaries: Record<string, TopicSummary>;
+  repaired: number;
+}
+
 /** Which pages of a topic have already been indexed, so a crawl can skip them. */
 export interface GetTopicPagesMessage {
   kind: MessageKind.GetTopicPages;
@@ -158,6 +173,24 @@ export interface RebuildAllMessage {
   kind: MessageKind.RebuildAll;
 }
 
+/** Asks for the whole database as one plain object, for saving to a file. */
+export interface ExportBackupMessage {
+  kind: MessageKind.ExportBackup;
+}
+
+/**
+ * Hands a parsed backup file to the writer.
+ *
+ * The payload is `unknown` on purpose. It came out of a file the user chose,
+ * which means it may be anything at all, and pretending otherwise here would
+ * only move the validation somewhere it is easier to skip. The background
+ * validates before it writes.
+ */
+export interface ImportBackupMessage {
+  kind: MessageKind.ImportBackup;
+  payload: unknown;
+}
+
 export type Message =
   | RecordAttemptMessage
   | ObservePageMessage
@@ -169,7 +202,9 @@ export type Message =
   | GetTopicDetailMessage
   | ReportHierarchyMessage
   | ReportDiagnosticMessage
-  | RebuildAllMessage;
+  | RebuildAllMessage
+  | ExportBackupMessage
+  | ImportBackupMessage;
 
 export interface RecordAttemptResponse {
   stored: boolean;
@@ -205,13 +240,15 @@ export interface ResponseMap {
   [MessageKind.ObservePage]: ObservePageResponse;
   [MessageKind.GetSummaries]: Record<string, TopicSummary>;
   [MessageKind.GetQuestionMarks]: Record<string, QuestionMark>;
-  [MessageKind.GetDashboard]: Record<string, TopicSummary>;
+  [MessageKind.GetDashboard]: DashboardPayload;
   [MessageKind.GetTopicPages]: TopicPages;
   [MessageKind.SetStar]: SetStarResponse;
   [MessageKind.GetTopicDetail]: TopicDetail;
   [MessageKind.ReportHierarchy]: ReportHierarchyResponse;
   [MessageKind.ReportDiagnostic]: ReportDiagnosticResponse;
   [MessageKind.RebuildAll]: RebuildAllResponse;
+  [MessageKind.ExportBackup]: Backup;
+  [MessageKind.ImportBackup]: ImportOutcome;
 }
 
 export type Response<K extends MessageKind> = ResponseMap[K];

@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useDashboard } from "../../../services/dashboard";
 import type { TopicGroup } from "../../../utils/dashboard";
 import { LOADING_LABEL, PAGE_SUBTITLE, PAGE_TITLE } from "../constants";
+import { DataTools } from "../DataTools";
 import { EmptyState } from "../EmptyState";
 import { Overview } from "../Overview";
 import { SubjectDialog } from "../SubjectDialog";
@@ -23,7 +24,7 @@ function findGroup(groups: TopicGroup[], key: string | null): TopicGroup | null 
 }
 
 export function App() {
-  const { view, loading } = useDashboard();
+  const { view, loading, repaired } = useDashboard();
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   // Looked up rather than stored: a summary rewritten while the dialog is open
@@ -47,6 +48,12 @@ export function App() {
           <SubjectGrid groups={view.groups} onOpen={setOpenKey} />
         </>
       ) : null}
+
+      {/*
+        Shown even with nothing recorded — importing a backup into a fresh
+        profile is exactly the case where the page is otherwise empty.
+      */}
+      {loading ? null : <DataTools repaired={repaired} />}
 
       {open ? (
         <SubjectDialog

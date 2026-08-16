@@ -1,8 +1,26 @@
 /** Shared topic-row writing, used by both the attempt and indexing services. */
 
-import type { TrackerDB } from "../../utils/db";
+import * as R from "ramda";
+import { BLANK_TOPIC, type TrackerDB } from "../../utils/db";
 import type { TopicRecord } from "../../types";
-import { BLANK_TOPIC } from "./constants";
+
+/**
+ * The given topics, plus the subject each one sits under.
+ *
+ * A subject counts every question its topics carry, so a subject's figures
+ * change the moment one of its topics does. Refreshing only the topics is what
+ * leaves a subject reading its old numbers on the page until something rebuilds
+ * everything — the same fan-out failure as cross-topic labels, one level up.
+ */
+export async function withParents(database: TrackerDB, slugs: string[]): Promise<string[]> {
+  const wanted = R.uniq(slugs);
+  const topics = await database.topics.bulkGet(wanted);
+  const parents = R.filter(
+    R.isNotNil,
+    topics.map((topic) => topic?.parentSlug ?? null),
+  );
+  return [...wanted, ...parents];
+}
 
 /**
  * Writes only the fields a caller owns.
