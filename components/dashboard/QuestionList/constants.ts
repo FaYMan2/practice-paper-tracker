@@ -9,3 +9,5 @@ export const STATUS_TEXT: Record<QuestionStatus, string> = {
 };
 
 export const STARRED_TITLE = "Starred on the page";
+
+export const TIMED_TITLE = "How long this took, the last time you timed it";

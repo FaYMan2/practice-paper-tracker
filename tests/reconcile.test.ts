@@ -102,6 +102,7 @@ describe("provisional reconciliation", () => {
       status: "wrong",
       attemptCount: 1,
       firstVerdict: "wrong",
+      lastDurationMs: null,
     });
   });
 
@@ -126,6 +127,7 @@ describe("provisional reconciliation", () => {
       lastAttemptAt: 2_000,
       attemptCount: 1,
       firstVerdict: "correct",
+      lastDurationMs: null,
     });
     await db.attempts.add(
       attempt(REAL, { eventId: `${REAL}:other`, pageLoadId: "other", ts: 2_000, verdict: "correct" }),

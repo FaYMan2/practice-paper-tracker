@@ -106,8 +106,21 @@ function projectAnswered(
     lastAttemptAt: last.ts,
     attemptCount: attempts.length,
     firstVerdict: first.verdict,
+    lastDurationMs: lastTimed(attempts),
   };
   return projected;
+}
+
+/**
+ * The most recent attempt that was actually timed, of those that were.
+ *
+ * Not `last.durationMs`: most attempts carry no timing, so reading only the
+ * newest would blank a real measurement the moment the question is answered
+ * again with the clock untouched.
+ */
+function lastTimed(attempts: AttemptRecord[]): number | null {
+  const timed = attempts.filter((attempt) => attempt.durationMs !== undefined);
+  return timed[timed.length - 1]?.durationMs ?? null;
 }
 
 function projectUnattempted(question: QuestionRecord): QuestionRecord {
@@ -117,6 +130,7 @@ function projectUnattempted(question: QuestionRecord): QuestionRecord {
     attemptCount: 0,
     firstVerdict: null,
     lastAttemptAt: null,
+    lastDurationMs: null,
   };
   return reset;
 }
@@ -173,19 +187,26 @@ export async function rebuildQuestionProjections(database: TrackerDB = db()): Pr
 }
 
 /**
- * The four fields the log decides on its own.
+ * The five fields the log decides on its own.
  *
  * `type` and `marks` are left out deliberately. They describe the question
  * rather than the answering of it, a row and an attempt can disagree about them
  * for innocent reasons, and treating that as damage would report a repair on
  * every single load.
+ *
+ * `lastDurationMs` is read through `?? null` because records written before
+ * timings existed simply have no such key. Comparing raw would call every one
+ * of them drifted on the first load after an update and announce a repair that
+ * changed nothing — while a stored `undefined` against a computed *number* is
+ * still caught, which is the case that matters.
  */
 function sameProjection(stored: QuestionRecord, computed: QuestionRecord): boolean {
   return (
     stored.status === computed.status &&
     stored.attemptCount === computed.attemptCount &&
     stored.firstVerdict === computed.firstVerdict &&
-    stored.lastAttemptAt === computed.lastAttemptAt
+    stored.lastAttemptAt === computed.lastAttemptAt &&
+    (stored.lastDurationMs ?? null) === computed.lastDurationMs
   );
 }
 

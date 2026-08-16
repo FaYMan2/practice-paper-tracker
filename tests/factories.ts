@@ -43,6 +43,7 @@ export function question(
     attemptCount: 0,
     lastAttemptAt: null,
     firstVerdict: null,
+    lastDurationMs: null,
     provisional: false,
     starred: false,
   };

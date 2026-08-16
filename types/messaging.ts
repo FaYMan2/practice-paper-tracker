@@ -97,6 +97,8 @@ export interface TopicQuestionRow {
   attemptCount: number;
   lastAttemptAt: number | null;
   firstVerdict: Verdict | null;
+  /** How long the last timed attempt took, or null if none was ever timed. */
+  lastDurationMs: number | null;
   /** True when identity fell back to a synthetic key, so it cannot cross topics. */
   provisional: boolean;
   starred: boolean;

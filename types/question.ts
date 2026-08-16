@@ -35,4 +35,12 @@ export interface QuestionRecord {
   attemptCount: number;
   /** Verdict of the earliest attempt — supports a "right first try" stat. */
   firstVerdict: Verdict | null;
+  /**
+   * How long the most recent *timed* attempt took, or null if none was.
+   *
+   * The latest timing rather than the latest attempt's: answering a question
+   * again without starting the clock says nothing about how long it takes, and
+   * blanking the figure because of it would lose the only measurement there is.
+   */
+  lastDurationMs: number | null;
 }

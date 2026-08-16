@@ -38,6 +38,7 @@ function seedQuestion(row: ObservedRow, now: number): QuestionRecord {
     lastAttemptAt: null,
     attemptCount: 0,
     firstVerdict: null,
+    lastDurationMs: null,
   };
   return seeded;
 }

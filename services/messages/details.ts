@@ -26,6 +26,7 @@ function toQuestionRow(row: RowRecord, question: QuestionRecord | undefined): To
     attemptCount: question?.attemptCount ?? 0,
     lastAttemptAt: question?.lastAttemptAt ?? null,
     firstVerdict: question?.firstVerdict ?? null,
+    lastDurationMs: question?.lastDurationMs ?? null,
     provisional: isProvisionalKey(row.goId),
     starred: question?.starred ?? false,
   };

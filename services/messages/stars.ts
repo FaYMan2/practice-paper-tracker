@@ -20,6 +20,7 @@ function seedStarred(goId: string, starred: boolean, now: number): QuestionRecor
     lastAttemptAt: null,
     attemptCount: 0,
     firstVerdict: null,
+    lastDurationMs: null,
   };
   return seeded;
 }

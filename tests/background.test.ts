@@ -9,7 +9,7 @@ import { buildAllSummaries, buildTopicSummary } from "../utils/summary";
 import { recordHierarchy } from "../services/messages/hierarchy";
 import { setStar } from "../services/messages/stars";
 import { topicPages } from "../services/messages/coverage";
-import { rebuildQuestionProjections, questionMarks } from "../utils/db";
+import { driftedProjections, rebuildQuestionProjections, questionMarks } from "../utils/db";
 import { getSummaries, getSummary, watchSummaries } from "../utils/summary/mirror";
 import { refreshAllSummaries } from "../utils/summary";
 import type {
@@ -48,6 +48,7 @@ function question(goId: string, overrides: Partial<QuestionRecord> = {}): Questi
     lastAttemptAt: 2_000,
     attemptCount: 1,
     firstVerdict: "correct",
+    lastDurationMs: null,
   };
   return { ...base, ...overrides };
 }
@@ -476,6 +477,83 @@ describe("mirror writes", () => {
     unwatch();
 
     expect(notifications).toBe(0);
+  });
+});
+
+describe("how long a question took", () => {
+  function timedAttempt(overrides: Partial<AttemptInput> = {}): AttemptInput {
+    const input: AttemptInput = {
+      eventId: "523093:load-1",
+      goId: "523093",
+      verdict: "correct",
+      choices: [],
+      ts: 3_000,
+      topicSlug: "stack",
+      ordinal: 1,
+      pageNo: 1,
+      examSlug: "gate-cse-2024-set-1",
+      type: "MCQ",
+      marks: 1,
+      pageLoadId: "load-1",
+      ...overrides,
+    };
+    return input;
+  }
+
+  it("stores the duration the page measured", async () => {
+    await recordAttempt(timedAttempt({ durationMs: 95_000 }));
+
+    expect((await db.questions.get("523093"))?.lastDurationMs).toBe(95_000);
+  });
+
+  it("keeps the last timing when the question is answered again untimed", async () => {
+    await recordAttempt(timedAttempt({ durationMs: 95_000 }));
+    await recordAttempt(timedAttempt({ eventId: "523093:load-2", ts: 4_000 }));
+
+    expect((await db.questions.get("523093"))?.lastDurationMs).toBe(95_000);
+  });
+
+  it("writes what a full rebuild would compute, so the two cannot disagree", async () => {
+    // Two projections of one log — the incremental one on write, and the fold
+    // over every attempt. A difference here is drift the dashboard would
+    // silently repair on the next load.
+    await recordAttempt(timedAttempt({ durationMs: 95_000 }));
+    await recordAttempt(timedAttempt({ eventId: "523093:load-2", ts: 4_000 }));
+
+    const written = await db.questions.get("523093");
+    await rebuildQuestionProjections(db);
+
+    expect(await db.questions.get("523093")).toEqual(written);
+    expect(await driftedProjections(db)).toEqual([]);
+  });
+
+  it("does not call a record written before timings existed drifted", async () => {
+    // Every install passes through this: rows stored by an older version have
+    // no such key at all. Reporting each of them as damaged would announce a
+    // repair that changed nothing.
+    await recordAttempt(timedAttempt());
+    const stored = (await db.questions.get("523093"))!;
+    const { lastDurationMs: _gone, ...older } = stored;
+    await db.questions.put(older as QuestionRecord);
+
+    expect(await driftedProjections(db)).toEqual([]);
+  });
+
+  it("carries the timing through to the dashboard's question list", async () => {
+    await observePage({
+      topicSlug: "stack",
+      title: "Stack",
+      pageNo: 1,
+      totalFromSite: 30,
+      totalMarksFromSite: 40,
+      rows: [
+        { ordinal: 1, goId: "523093", examSlug: "gate-cse-2024-set-1", type: "MCQ", marks: 1, relatedSlugs: [] },
+      ],
+    });
+    await recordAttempt(timedAttempt({ durationMs: 95_000 }));
+
+    const detail = await topicDetail("stack");
+    expect(detail.rows[0]?.lastDurationMs).toBe(95_000);
   });
 });
 
