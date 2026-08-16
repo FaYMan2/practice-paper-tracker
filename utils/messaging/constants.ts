@@ -18,6 +18,7 @@ export enum MessageKind {
   ReportHierarchy = "reportHierarchy",
   ReportDiagnostic = "reportDiagnostic",
   RebuildAll = "rebuildAll",
+  GetReviewQueue = "getReviewQueue",
   ExportBackup = "exportBackup",
   ImportBackup = "importBackup",
 }
