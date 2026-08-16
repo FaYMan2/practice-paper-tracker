@@ -98,6 +98,15 @@ const badge = cva(
 
 export interface BadgeProps extends ComponentProps<"span">, VariantProps<typeof badge> {}
 
+/**
+ * The tones by name, so a lookup table elsewhere can hold one.
+ *
+ * The review stages pick their colour from a record keyed by stage; without a
+ * name for what a tone is, that record's values are untyped strings and a
+ * misspelling renders an unstyled badge instead of failing to compile.
+ */
+export type BadgeTone = NonNullable<BadgeProps["tone"]>;
+
 export function Badge({ className, tone, ...props }: BadgeProps) {
   return <span className={cn(badge({ tone }), className)} {...props} />;
 }
@@ -167,5 +176,6 @@ export function Empty({ icon, title, body, action }: EmptyProps) {
   );
 }
 
+export * from "./accordion";
 export * from "./tabs";
 export * from "./toggle-group";

@@ -19,7 +19,7 @@ export * from "./Overview";
 export * from "./ProgressBar";
 export * from "./QuestionList";
 export * from "./ResumeActions";
-export * from "./ReviewTable";
+export * from "./ReviewPanel";
 export * from "./Stat";
 export * from "./StatusDonut";
 export * from "./SubjectCard";

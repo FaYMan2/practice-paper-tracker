@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { fakeBrowser } from "wxt/testing/fake-browser";
-import { App, Overview, QuestionList, SubjectGrid, TopicTable } from "../components/dashboard";
+import {
+  App,
+  Overview,
+  QuestionList,
+  ReviewPanel,
+  SubjectGrid,
+  TopicTable,
+} from "../components/dashboard";
 import { QuestionFilter } from "../utils/dashboard";
 import { mergeSummaries } from "../utils/summary/mirror";
 import { MessageKind, errorReply } from "../utils/messaging";
@@ -14,7 +21,7 @@ import type {
 } from "../types";
 import { BackupRejection } from "../utils/backup";
 import type { Backup, ImportOutcome } from "../utils/backup";
-import type { ReviewQueue } from "../utils/review";
+import type { ReviewItem, ReviewQueue } from "../utils/review";
 import { CHILD, SUBJECT, question, viewOf } from "./factories";
 
 beforeEach(() => {
@@ -247,6 +254,38 @@ function fakeWorker(summaries: TopicSummary[], options: WorkerOptions = {}): Mes
   return asked;
 }
 
+function reviewItem(over: Partial<ReviewItem>): ReviewItem {
+  const base: ReviewItem = {
+    goId: "422797",
+    topicSlug: "stack",
+    subjectSlug: "data-structure",
+    ordinal: 7,
+    examSlug: "gate-cse-2024-set-1",
+    type: "NAT",
+    marks: 2,
+    starred: false,
+    attemptCount: 2,
+    lapses: 1,
+    repetitions: 0,
+    intervalDays: 1,
+    lastReviewedAt: Date.UTC(2026, 7, 10),
+    dueAt: Date.UTC(2026, 7, 11),
+    overdueDays: 1,
+  };
+  return { ...base, ...over };
+}
+
+/**
+ * The list beside the calendar.
+ *
+ * Scoped, because the grid carries question numbers of its own now: a cell
+ * holding Q7 and a list holding Q7 are two different claims, and a bare
+ * `getByText("Q7")` cannot tell them apart — it matches both and throws.
+ */
+function dayList() {
+  return within(screen.getByRole("region", { name: /selected day/ }));
+}
+
 /** The three sections live behind a tab bar, so a test has to open one. */
 async function openTab(name: string): Promise<void> {
   // Pointer-down, not click: a tab list activates on press so that dragging off
@@ -254,6 +293,172 @@ async function openTab(name: string): Promise<void> {
   // never reaches that handler.
   fireEvent.mouseDown(await screen.findByRole("tab", { name: new RegExp(name) }));
 }
+
+/**
+ * A day's heading has to say which of the three states it is in. Calling a
+ * future day "due" is what made a question answered correctly today, and
+ * scheduled for tomorrow, read as something overdue.
+ */
+describe("ReviewPanel day heading", () => {
+  const TODAY = new Date(2026, 7, 16, 12).getTime();
+  const on = (d: number) => new Date(2026, 7, d, 9).getTime();
+
+  function renderPanel() {
+    render(
+      <ReviewPanel
+        now={TODAY}
+        loading={false}
+        titles={{ stack: "Stack" }}
+        subjectOf={{ stack: "data-structure" }}
+        queue={{
+          due: [
+            reviewItem({ ordinal: 4, dueAt: on(14), overdueDays: 2 }),
+            reviewItem({ ordinal: 6, dueAt: on(16), overdueDays: 0 }),
+          ],
+          upcoming: [reviewItem({ ordinal: 1, dueAt: on(17), overdueDays: 0 })],
+          tracked: 3,
+          unplaced: 0,
+        }}
+      />,
+    );
+  }
+
+  const pick = (d: number) =>
+    fireEvent.click(screen.getByRole("button", { name: new Date(on(d)).toDateString() }));
+
+  it("counts a past day's wait in calendar days", () => {
+    // Opens on the oldest waiting day, which is the 14th.
+    renderPanel();
+
+    expect(screen.getByText(/1 question · 2 days overdue/)).toBeTruthy();
+  });
+
+  it("says today rather than a wait of zero", () => {
+    renderPanel();
+    pick(16);
+
+    expect(screen.getByText(/1 question · due today/)).toBeTruthy();
+  });
+
+  it("says when a future day is coming, never that it is due", () => {
+    renderPanel();
+    pick(17);
+
+    // Matched on the wording, not the date: the date is locale-formatted and
+    // renders "Aug 17, 2026" here and "17 Aug 2026" in a browser.
+    // Scoped to the day's own heading because the month summary beside it says
+    // "1 overdue" quite correctly, about a different day.
+    const heading = screen.getByRole("heading", { level: 3, name: /due in 1 day/ });
+    expect(heading.textContent).not.toContain("overdue");
+  });
+});
+
+/**
+ * Every question in the panel was answered wrong at least once, so "wrong" is
+ * not a distinction it can draw. What it draws is what has happened since.
+ */
+describe("ReviewPanel stages, chips and the subject tree", () => {
+  const TODAY = new Date(2026, 7, 16, 12).getTime();
+  const on = (d: number) => new Date(2026, 7, d, 9).getTime();
+
+  /** Two topics under one subject, one question in each of the three stages. */
+  function renderPanel() {
+    render(
+      <ReviewPanel
+        now={TODAY}
+        loading={false}
+        titles={{
+          stack: "Stack",
+          "linked-list": "Linked List",
+          "data-structure": "Data Structure",
+        }}
+        subjectOf={{}}
+        queue={{
+          due: [
+            reviewItem({ ordinal: 4, dueAt: on(14), overdueDays: 2, lapses: 3, repetitions: 0 }),
+            reviewItem({ ordinal: 5, dueAt: on(14), overdueDays: 2, lapses: 1, repetitions: 0, starred: true }),
+          ],
+          upcoming: [
+            reviewItem({
+              ordinal: 1,
+              topicSlug: "linked-list",
+              dueAt: on(17),
+              overdueDays: 0,
+              lapses: 2,
+              repetitions: 1,
+            }),
+          ],
+          tracked: 3,
+          unplaced: 0,
+        }}
+      />,
+    );
+  }
+
+  const cell = (d: number) =>
+    screen.getByRole("button", { name: new Date(on(d)).toDateString() });
+
+  it("separates a question missed repeatedly from one missed once", () => {
+    // Both are equally overdue and equally wrong. Only the histories differ.
+    renderPanel();
+
+    expect(dayList().getByText("Struggling")).toBeTruthy();
+    expect(dayList().getByText("Relearning")).toBeTruthy();
+  });
+
+  it("marks a question that has gone right since the miss", () => {
+    renderPanel();
+    fireEvent.click(cell(17));
+
+    expect(dayList().getByText("On track")).toBeTruthy();
+    // Scheduled, not late: the wait reads forwards. Matched exactly, since the
+    // day's own heading says "due in 1 day" about the same day.
+    expect(dayList().getByText("in 1 day")).toBeTruthy();
+  });
+
+  it("marks a starred question without spending its stage colour on it", () => {
+    // Starred is a second axis: a question can be starred and struggling at
+    // once, so it cannot be a fourth mutually exclusive state.
+    renderPanel();
+    const starred = dayList().getByText("Q5").closest("li")!;
+
+    expect(within(starred).getByText("Starred")).toBeTruthy();
+    expect(within(starred).getByText("Relearning")).toBeTruthy();
+  });
+
+  it("names the questions in a calendar cell rather than only counting them", () => {
+    renderPanel();
+
+    expect(cell(14).textContent).toContain("Q4");
+    expect(cell(14).textContent).toContain("Q5");
+    expect(cell(17).textContent).toContain("Q1");
+  });
+
+  it("narrows the table to the topic picked out of the tree", () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("radio", { name: /By topic/ }));
+
+    const list = () => within(screen.getByRole("region", { name: /selected topic/ }));
+    // Opens on the subject, so every topic under it is listed at once.
+    expect(list().getByText("Q4")).toBeTruthy();
+    expect(list().getByText("Q1")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Linked List/ }));
+
+    expect(list().getByText("Q1")).toBeTruthy();
+    expect(list().queryByText("Q4")).toBeNull();
+  });
+
+  it("shows the whole rotation by topic, not only what is late", () => {
+    // The calendar plotted everything and this view listed only what was due,
+    // so the same data read as two numbers depending on which button was on.
+    renderPanel();
+    fireEvent.click(screen.getByRole("radio", { name: /By topic/ }));
+
+    const list = within(screen.getByRole("region", { name: /selected topic/ }));
+    expect(list.getAllByRole("row")).toHaveLength(4); // a header and three questions
+  });
+});
 
 describe("App", () => {
   it("asks for the index page before anything has been recorded", async () => {
@@ -356,6 +561,8 @@ describe("App", () => {
             starred: false,
             attemptCount: 2,
             lapses: 2,
+            repetitions: 0,
+            intervalDays: 1,
             lastReviewedAt: Date.UTC(2026, 7, 11),
             dueAt: Date.UTC(2026, 7, 12),
             overdueDays: 4,
@@ -373,8 +580,7 @@ describe("App", () => {
     expect(link.getAttribute("href")).toBe(
       "https://practicepaper.in/gate-cse/stack?page_no=2#pptr-resume=422797",
     );
-    expect(screen.getByText("Q7")).toBeTruthy();
-    expect(screen.getByText("4 days")).toBeTruthy();
+    expect(dayList().getByText("Q7")).toBeTruthy();
     // A missed question with nowhere to link is counted, not quietly dropped.
     expect(screen.getByText(/1 missed question not on any page indexed/)).toBeTruthy();
   });
@@ -399,6 +605,53 @@ describe("App", () => {
 
     expect(await screen.findByText(/Nothing due right now/)).toBeTruthy();
     expect(screen.getByText(/4 questions in the rotation/)).toBeTruthy();
+  });
+
+  it("shows the month, and a day's questions when it is clicked", async () => {
+    // The by-day view is a calendar: days carry a count, and picking one lists
+    // what falls on it. Thirty cells of question numbers would be a wall.
+    const day = (d: number) => new Date(2026, 7, d, 12).getTime();
+    fakeWorker([SUBJECT, CHILD], {
+      review: {
+        due: [
+          reviewItem({ ordinal: 7, dueAt: day(11) }),
+          reviewItem({ ordinal: 9, dueAt: day(14) }),
+          reviewItem({ ordinal: 12, dueAt: day(14) }),
+        ],
+        upcoming: [],
+        tracked: 3,
+        unplaced: 0,
+      },
+    });
+    render(<App />);
+    await openTab("Review");
+
+    // Opens on the oldest thing waiting, so that day's question is listed.
+    await screen.findByRole("region", { name: /selected day/ });
+    expect(dayList().getByText("Q7")).toBeTruthy();
+    expect(dayList().queryByText("Q9")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: new Date(day(14)).toDateString() }));
+
+    expect(dayList().getByText("Q9")).toBeTruthy();
+    expect(dayList().getByText("Q12")).toBeTruthy();
+    expect(dayList().queryByText("Q7")).toBeNull();
+  });
+
+  it("says a day is empty rather than showing yesterday's questions", async () => {
+    const day = (d: number) => new Date(2026, 7, d, 12).getTime();
+    fakeWorker([SUBJECT, CHILD], {
+      review: { due: [reviewItem({ ordinal: 7, dueAt: day(11) })], upcoming: [], tracked: 1, unplaced: 0 },
+    });
+    render(<App />);
+    await openTab("Review");
+    await screen.findByRole("region", { name: /selected day/ });
+    expect(dayList().getByText("Q7")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: new Date(day(12)).toDateString() }));
+
+    expect(screen.getByText(/Nothing scheduled for this day/)).toBeTruthy();
+    expect(dayList().queryByText("Q7")).toBeNull();
   });
 
   it("opens a subject, and asks the background for the topic's questions", async () => {

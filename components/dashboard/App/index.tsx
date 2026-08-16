@@ -36,7 +36,7 @@ import {
 import { DataTools } from "../DataTools";
 import { EmptyState } from "../EmptyState";
 import { Overview } from "../Overview";
-import { ReviewTable } from "../ReviewTable";
+import { ReviewPanel } from "../ReviewPanel";
 import { SubjectDialog } from "../SubjectDialog";
 import { SubjectGrid } from "../SubjectGrid";
 import { Badge, Segmented, Tab, TabList, TabPanel, Tabs } from "../ui";
@@ -128,7 +128,7 @@ export function App() {
           </TabPanel>
 
           <TabPanel value={DashboardTab.Review}>
-            <ReviewTable
+            <ReviewPanel
               queue={queue}
               loading={reviewLoading}
               titles={view.titles}
