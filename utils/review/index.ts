@@ -64,11 +64,19 @@ function adjustEasiness(easiness: number, quality: number): number {
   return Math.max(MIN_EASINESS, next);
 }
 
-/** How long until this question should be seen again, in days. */
-function nextInterval(previous: Progress, repetitions: number): number {
+/**
+ * How long until this question should be seen again, in days.
+ *
+ * `I(n) = I(n-1) × EF`, and the EF is the one **this** answer just earned, not
+ * the one it had beforehand. SM-2 adjusts easiness and then multiplies by it;
+ * multiplying by the stale value instead costs one 0.1 step at every rung of
+ * the ladder — 14 days where the algorithm says 15, 35 where it says 39 — and
+ * the gap compounds, because each interval is computed from the last.
+ */
+function nextInterval(previous: Progress, repetitions: number, easiness: number): number {
   if (repetitions === 1) return FIRST_INTERVAL_DAYS;
   if (repetitions === 2) return SECOND_INTERVAL_DAYS;
-  return Math.round(previous.intervalDays * previous.easiness);
+  return Math.round(previous.intervalDays * easiness);
 }
 
 function applyAttempt(previous: Progress, verdict: Verdict): Progress {
@@ -91,7 +99,7 @@ function applyAttempt(previous: Progress, verdict: Verdict): Progress {
   const passed: Progress = {
     easiness,
     repetitions,
-    intervalDays: nextInterval(previous, repetitions),
+    intervalDays: nextInterval(previous, repetitions, easiness),
     lapses: previous.lapses,
   };
   return passed;

@@ -75,19 +75,21 @@ describe("intervals", () => {
   it("walks 1, 6 and then easiness-multiplied", () => {
     // Hand-computed from SM-2 with the two qualities this data can produce.
     // A miss takes easiness 2.5 -> 2.18; each correct answer adds 0.1, and the
-    // interval multiplies by the easiness as it stood *before* that answer.
+    // interval multiplies by the easiness that answer has just earned — the
+    // order SM-2 specifies, adjust and then multiply.
     expect(scheduleOf(["wrong"])?.intervalDays).toBe(1);
     expect(scheduleOf(["wrong", "correct"])?.intervalDays).toBe(1);
     expect(scheduleOf(["wrong", "correct", "correct"])?.intervalDays).toBe(6);
-    // round(6 * 2.38)
-    expect(scheduleOf(["wrong", "correct", "correct", "correct"])?.intervalDays).toBe(14);
+    // round(6 * 2.48), not round(6 * 2.38): multiplying by the easiness as it
+    // stood *before* the answer loses a step at every rung, and compounds.
+    expect(scheduleOf(["wrong", "correct", "correct", "correct"])?.intervalDays).toBe(15);
   });
 
   it("sends a question all the way back when it is missed again", () => {
     const recovered = scheduleOf(["wrong", "correct", "correct", "correct"]);
     const relapsed = scheduleOf(["wrong", "correct", "correct", "correct", "wrong"]);
 
-    expect(recovered?.intervalDays).toBe(14);
+    expect(recovered?.intervalDays).toBe(15);
     expect(relapsed?.intervalDays).toBe(1);
     expect(relapsed?.repetitions).toBe(0);
     // Easiness keeps the penalty, so the climb back is slower each time.
@@ -129,7 +131,7 @@ describe("intervals", () => {
 
 describe("graduation", () => {
   it("stops offering a question answered right often enough", () => {
-    // 1, 6, 14, 35, 90 — at three months it is something you have learned.
+    // 1, 6, 15, 39, 105 — past three months it is something you have learned.
     const learned = scheduleOf([
       "wrong",
       "correct",
@@ -139,13 +141,15 @@ describe("graduation", () => {
       "correct",
     ]);
 
-    expect(learned?.intervalDays).toBe(90);
+    expect(learned?.intervalDays).toBe(105);
     expect(learned?.graduated).toBe(true);
   });
 
   it("keeps offering one still short of it", () => {
+    // 39 days is a gap, not a graduation: the threshold is the interval passing
+    // three months, not the number of right answers behind it.
     expect(scheduleOf(["wrong", "correct", "correct", "correct", "correct"])).toMatchObject({
-      intervalDays: 35,
+      intervalDays: 39,
       graduated: false,
     });
   });
