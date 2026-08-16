@@ -5,8 +5,6 @@
  * how many times a question has been answered, and when it was last touched.
  */
 
-import "./QuestionList.css";
-
 import {
   FILTERS,
   FILTER_ORDER,
@@ -21,6 +19,7 @@ import {
   pluralize,
   topicDisplayName,
 } from "../../../utils/format";
+import { Star } from "lucide-react";
 import { buildResumeUrl } from "../../../utils/url";
 import type { TopicDetail, TopicQuestionRow } from "../../../types";
 import {
@@ -28,9 +27,17 @@ import {
   NOT_INDEXED_LABEL,
   NO_QUESTIONS_LABEL,
 } from "../constants";
-import { STARRED_TITLE, STAR_GLYPH, STATUS_TEXT } from "./constants";
+import { Badge, cn } from "../ui";
+import { STARRED_TITLE, STATUS_TEXT } from "./constants";
 
 export * from "./constants";
+
+/** The verdict a question carries, as a badge tone. */
+const STATUS_TONE = {
+  correct: "correct",
+  wrong: "wrong",
+  unattempted: "neutral",
+} as const;
 
 export interface QuestionListProps {
   slug: string;
@@ -74,9 +81,9 @@ function Question({
   titles: Record<string, string | null>;
 }) {
   return (
-    <li className="question">
+    <li className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-t border-line px-4 py-2 first:border-t-0">
       <a
-        className="question-ordinal num"
+        className="num font-semibold text-accent no-underline hover:underline"
         // Built from the row's own topic, never the one being listed: the
         // ordinal only addresses a page within the topic it was seen in.
         href={buildResumeUrl(row.topicSlug, { ordinal: row.ordinal, goId: row.goId })}
@@ -86,12 +93,10 @@ function Question({
         Q{row.ordinal}
       </a>
       {row.starred ? (
-        <span className="question-star" title={STARRED_TITLE}>
-          {STAR_GLYPH}
-        </span>
+        <Star className="size-3.5 self-center fill-accent text-accent" aria-label={STARRED_TITLE} />
       ) : null}
-      <span className={`pill pill-${row.status}`}>{STATUS_TEXT[row.status]}</span>
-      <span className="question-meta">{metaText(row, slug, titles)}</span>
+      <Badge tone={STATUS_TONE[row.status]}>{STATUS_TEXT[row.status]}</Badge>
+      <span className="text-xs text-muted">{metaText(row, slug, titles)}</span>
     </li>
   );
 }
@@ -104,19 +109,26 @@ export function QuestionList({
   filter,
   onFilter,
 }: QuestionListProps) {
-  if (loading || !detail) return <p className="panel-empty">{LOADING_QUESTIONS_LABEL}</p>;
+  if (loading || !detail) {
+    return <p className="m-0 px-4 py-3 text-xs text-muted italic">{LOADING_QUESTIONS_LABEL}</p>;
+  }
 
   const counts = filterCounts(detail.rows);
   const shown = filterQuestions(detail.rows, filter);
 
   return (
-    <div className="panel">
-      <div className="filters">
+    <div className="border-t border-line bg-raised">
+      <div className="flex flex-wrap gap-1.5 px-4 py-2.5">
         {FILTER_ORDER.map((option) => (
           <button
             key={option}
             type="button"
-            className={`filter${option === filter ? " filter-active" : ""}`}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+              option === filter
+                ? "border-accent bg-accent text-white"
+                : "border-line bg-surface text-muted hover:text-ink",
+            )}
             aria-pressed={option === filter}
             onClick={() => onFilter(option)}
           >
@@ -126,11 +138,11 @@ export function QuestionList({
       </div>
 
       {shown.length === 0 ? (
-        <p className="panel-empty">
+        <p className="m-0 px-4 py-3 text-xs text-muted italic">
           {detail.rows.length === 0 ? NOT_INDEXED_LABEL : NO_QUESTIONS_LABEL}
         </p>
       ) : (
-        <ul className="questions">
+        <ul className="m-0 max-h-none list-none bg-surface p-0">
           {shown.map((row) => (
             <Question
               key={`${row.topicSlug}:${row.ordinal}`}

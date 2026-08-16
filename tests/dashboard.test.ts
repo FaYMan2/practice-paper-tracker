@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   QuestionFilter,
+  SubjectView,
   accuracy,
   buildView,
   coverage,
@@ -10,6 +11,7 @@ import {
   statusCounts,
   sumStats,
   unattemptedRows,
+  visibleGroups,
 } from "../utils/dashboard";
 import { CHILD, SUBJECT, question, summary, viewOf } from "./factories";
 
@@ -129,5 +131,27 @@ describe("filterQuestions", () => {
   it("narrows to one status", () => {
     expect(filterQuestions(rows, QuestionFilter.Wrong).map((row) => row.ordinal)).toEqual([2]);
     expect(filterQuestions(rows, QuestionFilter.Unattempted)).toHaveLength(1);
+  });
+});
+
+describe("which subjects the grid shows", () => {
+  it("hides subjects with nothing recorded, and keeps them one click away", () => {
+    // The syllabus is thirteen subjects; on any given day most are empty, and
+    // rendering them all puts a wall of identical zeroes in front of the few
+    // being worked on.
+    const groups = viewOf([SUBJECT, CHILD, summary("web-technology")]).groups;
+
+    expect(groups).toHaveLength(2);
+    expect(visibleGroups(groups, SubjectView.Started).map((group) => group.key)).toEqual([
+      "data-structure",
+    ]);
+    expect(visibleGroups(groups, SubjectView.All)).toHaveLength(2);
+  });
+
+  it("counts a subject you have opened but not answered anything in as started", () => {
+    // It knows its own size, which is more than an untouched one does.
+    const opened = summary("discrete-mathematics", { indexedRows: 5, totalFromSite: 465 });
+
+    expect(visibleGroups(viewOf([opened]).groups, SubjectView.Started)).toHaveLength(1);
   });
 });

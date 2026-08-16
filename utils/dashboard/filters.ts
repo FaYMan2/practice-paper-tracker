@@ -1,7 +1,8 @@
-/** Narrowing a topic's question list to one status. */
+/** Narrowing a topic's question list to one status, and the grid to one view. */
 
 import type { TopicQuestionRow } from "../../types";
-import { QuestionFilter } from "./constants";
+import { QuestionFilter, SubjectView } from "./constants";
+import type { TopicGroup } from "./types";
 
 interface FilterDefinition {
   label: string;
@@ -41,6 +42,22 @@ export function filterQuestions(
   filter: QuestionFilter,
 ): TopicQuestionRow[] {
   return rows.filter(FILTERS[filter].matches);
+}
+
+/**
+ * Whether anything at all is known about a subject.
+ *
+ * Indexed rows count, not just answers. Opening a topic's page records what is
+ * on it, and a subject you have looked at but not yet answered anything in is
+ * one you have started — it knows its own size, which is more than the
+ * untouched ones do.
+ */
+export function hasRecords(group: TopicGroup): boolean {
+  return group.stats.indexedRows > 0 || group.stats.solvedRows > 0;
+}
+
+export function visibleGroups(groups: TopicGroup[], view: SubjectView): TopicGroup[] {
+  return view === SubjectView.All ? groups : groups.filter(hasRecords);
 }
 
 /** How many questions each filter would show, for the button labels. */

@@ -8,6 +8,4 @@ export const STATUS_TEXT: Record<QuestionStatus, string> = {
   unattempted: "Not attempted",
 };
 
-export const STAR_GLYPH = "★";
-
 export const STARRED_TITLE = "Starred on the page";

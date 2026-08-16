@@ -5,7 +5,6 @@
  * is algorithms going" but "what should I revise", and that is the top bar.
  */
 
-import "./AccuracyBars.css";
 
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import * as R from "ramda";
@@ -50,10 +49,10 @@ function weakestFirst(groups: TopicGroup[]): Row[] {
 
 export function AccuracyBars({ groups, emptyMessage }: AccuracyBarsProps) {
   const rows = weakestFirst(groups);
-  if (rows.length === 0) return <p className="bars-empty">{emptyMessage}</p>;
+  if (rows.length === 0) return <p className="m-0 text-sm text-muted italic">{emptyMessage}</p>;
 
   return (
-    <div className="bars" style={{ height: rows.length * ROW_HEIGHT + 24 }}>
+    <div className="w-full" style={{ height: rows.length * ROW_HEIGHT + 24 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} layout="vertical" margin={{ left: 0, right: 44, top: 4, bottom: 4 }}>
           <XAxis type="number" domain={[0, 1]} hide />

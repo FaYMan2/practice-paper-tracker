@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import { BackupRejection } from "../utils/backup";
 import type { Backup, ImportOutcome } from "../utils/backup";
+import type { ReviewQueue } from "../utils/review";
 import { CHILD, SUBJECT, question, viewOf } from "./factories";
 
 beforeEach(() => {
@@ -213,6 +214,7 @@ interface WorkerOptions {
   /** Question records the worker reports as having been repaired on load. */
   repaired?: number;
   rebuilt?: RebuildAllResponse;
+  review?: ReviewQueue;
   imported?: ImportOutcome;
   backup?: Backup;
 }
@@ -234,12 +236,23 @@ function fakeWorker(summaries: TopicSummary[], options: WorkerOptions = {}): Mes
     }
     if (message.kind === MessageKind.GetTopicDetail) sendResponse(options.detail ?? DETAIL);
     if (message.kind === MessageKind.RebuildAll) sendResponse(options.rebuilt);
+    if (message.kind === MessageKind.GetReviewQueue) {
+      sendResponse(options.review ?? { due: [], upcoming: [], tracked: 0, unplaced: 0 });
+    }
     if (message.kind === MessageKind.ImportBackup) sendResponse(options.imported);
     if (message.kind === MessageKind.ExportBackup) sendResponse(options.backup);
     return true;
   });
 
   return asked;
+}
+
+/** The three sections live behind a tab bar, so a test has to open one. */
+async function openTab(name: string): Promise<void> {
+  // Pointer-down, not click: a tab list activates on press so that dragging off
+  // it still leaves the tab you pressed selected, and a bare `click` event
+  // never reaches that handler.
+  fireEvent.mouseDown(await screen.findByRole("tab", { name: new RegExp(name) }));
 }
 
 describe("App", () => {
@@ -281,6 +294,7 @@ describe("App", () => {
     // hiding the tools behind having data would hide them when they are needed.
     fakeWorker([]);
     render(<App />);
+    await openTab("Backups");
 
     expect(await screen.findByRole("button", { name: /Import a backup/ })).toBeTruthy();
   });
@@ -303,6 +317,7 @@ describe("App", () => {
   it("rebuilds on request and reports what it did", async () => {
     const asked = fakeWorker([SUBJECT, CHILD], { rebuilt: { questions: 412, topics: 111 } });
     render(<App />);
+    await openTab("Backups");
 
     fireEvent.click(await screen.findByRole("button", { name: /Rebuild the figures/ }));
 
@@ -315,14 +330,75 @@ describe("App", () => {
       imported: { ok: false, rejection: BackupRejection.NotABackup, detail: "no format field" },
     });
     render(<App />);
+    await openTab("Backups");
     await screen.findByRole("button", { name: /Import a backup/ });
 
-    const picker = document.querySelector<HTMLInputElement>(".tools-picker")!;
+    const picker = document.querySelector<HTMLInputElement>('input[type="file"]')!;
     fireEvent.change(picker, {
       target: { files: [new File(['{"hello":true}'], "other.json", { type: "application/json" })] },
     });
 
     expect(await screen.findByText(/isn't a tracker backup/)).toBeTruthy();
+  });
+
+  it("lists what is due, linking each question to itself on the site", async () => {
+    fakeWorker([SUBJECT, CHILD], {
+      review: {
+        due: [
+          {
+            goId: "422797",
+            topicSlug: "stack",
+            subjectSlug: "data-structure",
+            ordinal: 7,
+            examSlug: "gate-cse-2024-set-1",
+            type: "NAT",
+            marks: 2,
+            starred: false,
+            attemptCount: 2,
+            lapses: 2,
+            lastReviewedAt: Date.UTC(2026, 7, 11),
+            dueAt: Date.UTC(2026, 7, 12),
+            overdueDays: 4,
+          },
+        ],
+        upcoming: [],
+        tracked: 3,
+        unplaced: 1,
+      },
+    });
+    render(<App />);
+    await openTab("Review");
+
+    const link = await screen.findByRole("link", { name: "Solve" });
+    expect(link.getAttribute("href")).toBe(
+      "https://practicepaper.in/gate-cse/stack?page_no=2#pptr-resume=422797",
+    );
+    expect(screen.getByText("Q7")).toBeTruthy();
+    expect(screen.getByText("4 days")).toBeTruthy();
+    // A missed question with nowhere to link is counted, not quietly dropped.
+    expect(screen.getByText(/1 missed question not on any page indexed/)).toBeTruthy();
+  });
+
+  it("says nothing at all until something has been missed", async () => {
+    // A new profile has no rotation to describe, and an empty panel explaining
+    // one is just noise on the page.
+    fakeWorker([SUBJECT, CHILD]);
+    render(<App />);
+    await openTab("Review");
+
+    expect(await screen.findByText(/Nothing to review yet/)).toBeTruthy();
+    expect(screen.queryByRole("group", { name: /Group the review list/ })).toBeNull();
+  });
+
+  it("says it is caught up while questions are still in the rotation", async () => {
+    fakeWorker([SUBJECT, CHILD], {
+      review: { due: [], upcoming: [], tracked: 4, unplaced: 0 },
+    });
+    render(<App />);
+    await openTab("Review");
+
+    expect(await screen.findByText(/Nothing due right now/)).toBeTruthy();
+    expect(screen.getByText(/4 questions in the rotation/)).toBeTruthy();
   });
 
   it("opens a subject, and asks the background for the topic's questions", async () => {

@@ -1,7 +1,5 @@
 /** Every subject, as cards. */
 
-import "./SubjectGrid.css";
-
 import type { TopicGroup } from "../../../utils/dashboard";
 import { SubjectCard } from "../SubjectCard";
 
@@ -12,7 +10,7 @@ export interface SubjectGridProps {
 
 export function SubjectGrid({ groups, onOpen }: SubjectGridProps) {
   return (
-    <section className="grid">
+    <section className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
       {groups.map((group) => (
         <SubjectCard key={group.key} group={group} onOpen={onOpen} />
       ))}

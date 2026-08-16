@@ -97,3 +97,23 @@ export function buildView(summaries: Record<string, TopicSummary>): DashboardVie
   };
   return view;
 }
+
+/**
+ * Slug -> the subject it sits under, for everything the view knows about.
+ *
+ * A fallback, not the source. The background resolves each review item's
+ * subject from the `topics` table, which is authoritative; this exists because
+ * an extension reload can leave an older background worker answering with a
+ * shape that predates the field, and the page already has the hierarchy in
+ * hand. Better to render the right heading than to be right in principle.
+ */
+export function subjectBySlug(groups: TopicGroup[]): Record<string, string | null> {
+  const pairs = groups.flatMap((group) => {
+    const parent = group.parent?.slug ?? null;
+    return [
+      ...(parent === null ? [] : [[parent, null] as const]),
+      ...group.children.map((child) => [child.slug, parent] as const),
+    ];
+  });
+  return Object.fromEntries(pairs);
+}

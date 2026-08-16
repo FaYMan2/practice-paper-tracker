@@ -6,8 +6,6 @@
  * to have been indexed so far.
  */
 
-import "./StatusDonut.css";
-
 import { Cell, Pie, PieChart } from "recharts";
 import { statusCounts } from "../../../utils/dashboard";
 import type { TopicStats } from "../../../utils/dashboard";
@@ -52,7 +50,7 @@ export function StatusDonut({ stats, size, caption, label }: StatusDonutProps) {
       : [{ key: "left", name: STATUS_LABEL.left, value: 1, fill: CHART_COLOR.left }];
 
   return (
-    <div className="donut" style={{ width: size, height: size }}>
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
       {/*
         Zero margin, and the centre placed by hand: Recharts insets the plot
         area by 5px on every side by default and measures `cx`/`cy` inside it,
@@ -80,11 +78,18 @@ export function StatusDonut({ stats, size, caption, label }: StatusDonutProps) {
       </PieChart>
 
       {caption ? (
-        <div className="donut-hole">
-          <span className="donut-value num" style={{ fontSize: Math.round(size * 0.2) }}>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-px">
+          <span
+            className="num font-bold leading-none"
+            style={{ fontSize: Math.round(size * 0.2) }}
+          >
             {caption}
           </span>
-          {label ? <span className="donut-label">{label}</span> : null}
+          {label ? (
+            <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
+              {label}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </div>

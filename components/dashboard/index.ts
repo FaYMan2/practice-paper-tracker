@@ -10,6 +10,7 @@
  */
 
 export * from "./App";
+export * from "./ui";
 export * from "./AccuracyBars";
 export * from "./DataTools";
 export * from "./EmptyState";
@@ -18,6 +19,7 @@ export * from "./Overview";
 export * from "./ProgressBar";
 export * from "./QuestionList";
 export * from "./ResumeActions";
+export * from "./ReviewTable";
 export * from "./Stat";
 export * from "./StatusDonut";
 export * from "./SubjectCard";

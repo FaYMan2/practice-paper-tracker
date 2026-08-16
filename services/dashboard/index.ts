@@ -11,4 +11,5 @@ export * from "./data";
 export * from "./transfer";
 export * from "./useDashboard";
 export * from "./useDataTools";
+export * from "./useReview";
 export * from "./useTopicDetail";

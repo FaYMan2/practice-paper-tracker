@@ -1,17 +1,16 @@
 /**
  * Getting your data out, and back in.
  *
- * At the foot of the page rather than the top: it is the section you need twice
- * a year, and putting it above the progress would suggest otherwise. It is
- * still on the main page rather than behind a settings screen, because a backup
- * you have to go looking for is a backup nobody takes.
+ * Its own section rather than a strip under the dashboard: it is the part you
+ * need twice a year, and putting it beside the daily figures made both worse.
+ * It is still one click away rather than behind a settings screen, because a
+ * backup you have to go looking for is a backup nobody takes.
  */
 
-import "./DataTools.css";
-
-import { useRef, type ChangeEvent } from "react";
-import { useDataTools } from "../../../services/dashboard";
-import { pluralize } from "../../../utils/format";
+import { useRef, type ChangeEvent, type ReactNode } from "react";
+import { Download, RefreshCw, Upload } from "lucide-react";
+import { ToolTone, useDataTools } from "../../../services/dashboard";
+import { Button, Card, CardBody, CardNote, CardTitle, cn } from "../ui";
 import {
   BUSY_LABEL,
   EXPORT_HINT,
@@ -21,19 +20,37 @@ import {
   IMPORT_LABEL,
   REBUILD_HINT,
   REBUILD_LABEL,
-  REPAIRED_NOTE,
   TOOLS_NOTE,
   TOOLS_TITLE,
 } from "./constants";
 
 export * from "./constants";
 
-export interface DataToolsProps {
-  /** Question records the last load found out of step with the log, if any. */
-  repaired: number;
+function Action({
+  icon,
+  label,
+  hint,
+  busy,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Button variant="outline" disabled={busy} onClick={onClick}>
+        {icon}
+        {label}
+      </Button>
+      <p className="m-0 text-xs text-muted">{hint}</p>
+    </div>
+  );
 }
 
-export function DataTools({ repaired }: DataToolsProps) {
+export function DataTools() {
   const { busy, status, exportAll, importFile, rebuild } = useDataTools();
   const picker = useRef<HTMLInputElement>(null);
 
@@ -45,59 +62,54 @@ export function DataTools({ repaired }: DataToolsProps) {
   };
 
   return (
-    <section className="tools">
-      <h2 className="tools-title">{TOOLS_TITLE}</h2>
-      <p className="tools-note">{TOOLS_NOTE}</p>
+    <Card>
+      <CardBody>
+        <CardTitle>{TOOLS_TITLE}</CardTitle>
+        <CardNote className="mb-5">{TOOLS_NOTE}</CardNote>
 
-      <div className="tools-actions">
-        <div className="tools-action">
-          <button type="button" className="tools-button" disabled={busy} onClick={() => void exportAll()}>
-            {EXPORT_LABEL}
-          </button>
-          <p className="tools-hint">{EXPORT_HINT}</p>
-        </div>
-
-        <div className="tools-action">
-          <button
-            type="button"
-            className="tools-button"
-            disabled={busy}
+        <div className="grid gap-5 [grid-template-columns:repeat(3,minmax(0,1fr))] max-[760px]:grid-cols-1">
+          <Action
+            icon={<Download />}
+            label={EXPORT_LABEL}
+            hint={EXPORT_HINT}
+            busy={busy}
+            onClick={() => void exportAll()}
+          />
+          <Action
+            icon={<Upload />}
+            label={IMPORT_LABEL}
+            hint={IMPORT_HINT}
+            busy={busy}
             onClick={() => picker.current?.click()}
+          />
+          <Action
+            icon={<RefreshCw className={busy ? "animate-spin" : undefined} />}
+            label={REBUILD_LABEL}
+            hint={REBUILD_HINT}
+            busy={busy}
+            onClick={() => void rebuild()}
+          />
+        </div>
+
+        {/* Opened through the button beside it, so it is never seen. */}
+        <input ref={picker} className="hidden" type="file" accept={FILE_ACCEPT} onChange={onPick} />
+
+        {busy ? (
+          <p className="mt-5 mb-0 border-t border-line pt-4 text-sm text-muted">{BUSY_LABEL}</p>
+        ) : null}
+
+        {!busy && status ? (
+          <p
+            role="status"
+            className={cn(
+              "mt-5 mb-0 border-t border-line pt-4 text-sm",
+              status.tone === ToolTone.Error ? "text-wrong" : "text-ink",
+            )}
           >
-            {IMPORT_LABEL}
-          </button>
-          <p className="tools-hint">{IMPORT_HINT}</p>
-        </div>
-
-        <div className="tools-action">
-          <button type="button" className="tools-button" disabled={busy} onClick={() => void rebuild()}>
-            {REBUILD_LABEL}
-          </button>
-          <p className="tools-hint">{REBUILD_HINT}</p>
-        </div>
-      </div>
-
-      <input
-        ref={picker}
-        className="tools-picker"
-        type="file"
-        accept={FILE_ACCEPT}
-        onChange={onPick}
-      />
-
-      {busy ? <p className="tools-status">{BUSY_LABEL}</p> : null}
-
-      {!busy && status ? (
-        <p className={`tools-status tools-status-${status.tone}`} role="status">
-          {status.text}
-        </p>
-      ) : null}
-
-      {repaired > 0 ? (
-        <p className="tools-repaired" role="status">
-          {pluralize(repaired, "question record")} {REPAIRED_NOTE}
-        </p>
-      ) : null}
-    </section>
+            {status.text}
+          </p>
+        ) : null}
+      </CardBody>
+    </Card>
   );
 }

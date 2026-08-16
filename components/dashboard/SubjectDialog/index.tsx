@@ -6,8 +6,6 @@
  * three is worth reimplementing badly.
  */
 
-import "./SubjectDialog.css";
-
 import { useEffect, useRef, useState } from "react";
 import { QuestionFilter, accuracy, coverage, statusCounts } from "../../../utils/dashboard";
 import type { TopicGroup } from "../../../utils/dashboard";
@@ -18,6 +16,7 @@ import { Legend } from "../Legend";
 import { Stat, StatRow } from "../Stat";
 import { StatusDonut } from "../StatusDonut";
 import { TopicTable } from "../TopicTable";
+import { Button, cn } from "../ui";
 import { NO_TOPICS } from "./constants";
 
 export * from "./constants";
@@ -53,7 +52,11 @@ export function SubjectDialog({ group, titles, onClose }: SubjectDialogProps) {
   return (
     <dialog
       ref={ref}
-      className="dialog"
+      className={cn(
+        "m-auto max-h-[86vh] w-[min(1080px,94vw)] rounded-card border-0 bg-surface p-0 text-ink",
+        "shadow-[0_1px_2px_rgba(28,25,23,0.04),0_24px_64px_rgba(28,25,23,0.18)]",
+        "backdrop:bg-[rgba(28,25,23,0.42)]",
+      )}
       aria-label={group.label}
       onClose={onClose}
       // Clicking the backdrop lands on the dialog element itself, never on the
@@ -62,23 +65,23 @@ export function SubjectDialog({ group, titles, onClose }: SubjectDialogProps) {
         if (event.target === ref.current) ref.current?.close();
       }}
     >
-      <div className="dialog-panel">
-        <header className="dialog-head">
+      <div className="flex max-h-[86vh] flex-col overflow-y-auto p-6 [&>*]:flex-[0_0_auto]">
+        <header className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="dialog-title">{group.label}</h2>
-            <p className="dialog-sub">
+            <h2 className="m-0 text-xl font-bold tracking-tight">{group.label}</h2>
+            <p className="mt-1 mb-0 text-xs text-muted">
               {pluralize(group.children.length, "topic")} ·{" "}
               {stats.marksEarned}
               {stats.totalMarksFromSite === null ? "" : ` / ${stats.totalMarksFromSite}`} marks
             </p>
           </div>
 
-          <button type="button" className="dialog-close" onClick={() => ref.current?.close()}>
+          <Button variant="outline" size="sm" onClick={() => ref.current?.close()}>
             {CLOSE_LABEL}
-          </button>
+          </Button>
         </header>
 
-        <section className="dialog-summary">
+        <section className="mb-5 flex items-center gap-6 rounded-card border border-line bg-raised p-5">
           <StatusDonut
             stats={stats}
             size={104}
@@ -86,7 +89,7 @@ export function SubjectDialog({ group, titles, onClose }: SubjectDialogProps) {
             label="done"
           />
 
-          <div className="dialog-figures">
+          <div className="flex min-w-0 flex-col gap-3.5">
             <StatRow>
               <Stat value={attempted} label="attempted" />
               <Stat value={`${stats.correctRows}`} label="correct" tone="correct" />
@@ -99,7 +102,7 @@ export function SubjectDialog({ group, titles, onClose }: SubjectDialogProps) {
         </section>
 
         {group.parent === null && group.children.length === 0 ? (
-          <p className="dialog-empty">{NO_TOPICS}</p>
+          <p className="m-0 text-sm text-muted italic">{NO_TOPICS}</p>
         ) : (
           <TopicTable
             parent={group.parent}

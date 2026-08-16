@@ -25,7 +25,3 @@ export const BUSY_LABEL = "Working…";
 
 /** Only JSON is offered in the picker, though the contents are still checked. */
 export const FILE_ACCEPT = "application/json,.json";
-
-/** Follows the count when opening the dashboard found records out of step. */
-export const REPAIRED_NOTE =
-  "had drifted from the answer log and were repaired. The figures above are the corrected ones.";
