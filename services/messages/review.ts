@@ -3,7 +3,7 @@
 import * as R from "ramda";
 import { db, INDEX } from "../../utils/db";
 import type { TrackerDB } from "../../utils/db";
-import { UPCOMING_LIMIT, isDue, overdueDays, scheduleAll } from "../../utils/review";
+import { isDue, overdueDays, scheduleAll } from "../../utils/review";
 import type { ReviewItem, ReviewSchedule } from "../../utils/review";
 import type { MessageKind } from "../../utils/messaging";
 import type { AttemptRecord, QuestionRecord, ResponseMap, RowRecord } from "../../types";
@@ -39,6 +39,8 @@ function toItem(
     starred: question?.starred ?? false,
     attemptCount: question?.attemptCount ?? 0,
     lapses: schedule.lapses,
+    repetitions: schedule.repetitions,
+    intervalDays: schedule.intervalDays,
     lastReviewedAt: schedule.lastReviewedAt,
     dueAt: schedule.dueAt,
     overdueDays: overdueDays(schedule, now),
@@ -120,7 +122,7 @@ export async function reviewQueue(
   const queue: ResponseMap[MessageKind.GetReviewQueue] = {
     // Ascending due date is descending overdue-ness: the longest wait first.
     due: bySoonest.filter((item) => dueNow.has(item.goId)),
-    upcoming: bySoonest.filter((item) => !dueNow.has(item.goId)).slice(0, UPCOMING_LIMIT),
+    upcoming: bySoonest.filter((item) => !dueNow.has(item.goId)),
     tracked: scheduled.length,
     unplaced: scheduled.length - items.length,
   };

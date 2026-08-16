@@ -13,9 +13,12 @@
  */
 
 import * as R from "ramda";
+import { dayStartOf } from "./grouping";
 import type { AttemptRecord, Verdict } from "../../types";
 import {
   DAY_MS,
+  LEECH_LAPSES,
+  ReviewStage,
   FIRST_INTERVAL_DAYS,
   GRADUATION_INTERVAL_DAYS,
   INITIAL_EASINESS,
@@ -28,6 +31,7 @@ import {
 import type { ReviewSchedule } from "./types";
 
 export * from "./constants";
+export * from "./calendar";
 export * from "./grouping";
 export type * from "./types";
 
@@ -142,11 +146,35 @@ export function scheduleAll(attempts: AttemptRecord[]): ReviewSchedule[] {
   return R.filter(R.isNotNil, schedules);
 }
 
-/** Whole days a question has been waiting. Zero on the day it comes due. */
+/**
+ * Whole days a question has been waiting. Zero on the day it comes due.
+ *
+ * Counted in *calendar* days, not elapsed twenty-four hour periods. Something
+ * that came due on Friday morning has been waiting since Friday, and saying
+ * "1 day" on Sunday because only 47 hours have passed reads as wrong next to a
+ * grid that has it two columns back. `Math.round` because a local day is 23 or
+ * 25 hours long across a daylight-saving change.
+ */
 export function overdueDays(schedule: ReviewSchedule, now: number): number {
-  return Math.max(0, Math.floor((now - schedule.dueAt) / DAY_MS));
+  const elapsed = dayStartOf(now) - dayStartOf(schedule.dueAt);
+  return Math.max(0, Math.round(elapsed / DAY_MS));
 }
 
 export function isDue(schedule: ReviewSchedule, now: number): boolean {
   return !schedule.graduated && schedule.dueAt <= now;
+}
+
+/**
+ * What a question's history says to do about it, in three states.
+ *
+ * Takes an object rather than a `ReviewItem` so a caller with only a schedule
+ * can ask, and so the fields are **optional**: a background worker built before
+ * `repetitions` was carried on the item sends one without it, and a queue that
+ * renders every question as struggling is a better failure than one that
+ * throws. The same normalise-at-the-boundary rule as `subjectSlug`.
+ */
+export function stageOf(item: { repetitions?: number; lapses?: number }): ReviewStage {
+  // Right at least once since the last miss, so it is on its way out.
+  if ((item.repetitions ?? 0) > 0) return ReviewStage.OnTrack;
+  return (item.lapses ?? 0) >= LEECH_LAPSES ? ReviewStage.Struggling : ReviewStage.Relearning;
 }

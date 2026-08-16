@@ -54,12 +54,21 @@ export const LAPSE_INTERVAL_DAYS = 1;
 export const GRADUATION_INTERVAL_DAYS = 90;
 
 /**
- * How many not-yet-due questions travel with the queue.
+ * Weeks start on Monday, so the weekend sits together at the end of a row.
  *
- * Enough to answer "is there more coming", not so many that the reply carries
- * the whole rotation to render three lines of it.
+ * `Date.getDay()` counts from Sunday, so every conversion here has an offset in
+ * it — the off-by-one that silently puts a whole month on the wrong weekday.
  */
-export const UPCOMING_LIMIT = 5;
+export const DAYS_IN_WEEK = 7;
+
+/**
+ * Rows in the month grid, fixed rather than computed.
+ *
+ * A month needs four to six rows depending on where it starts. Letting the grid
+ * size itself makes everything below it jump as you page through, which costs
+ * more than a row of greyed-out days.
+ */
+export const WEEKS_SHOWN = 6;
 
 /**
  * How the review list is arranged.
@@ -80,4 +89,37 @@ export enum ReviewGrouping {
 export enum ReviewOrder {
   Oldest = "oldest",
   Newest = "newest",
+}
+
+/**
+ * Missed this many times, and a question stops being one you slipped on and
+ * becomes one you keep getting wrong.
+ *
+ * Anki calls these leeches and eventually suspends them. We only colour them,
+ * because there are 152 questions on the whole site and hiding one is worse
+ * than showing it in red — but the distinction is the useful part: "answer this
+ * again tomorrow" and "you have missed this three times, go and read the
+ * chapter" are different instructions.
+ */
+export const LEECH_LAPSES = 2;
+
+/**
+ * Where a question stands in the rotation, as something you can act on.
+ *
+ * Every question here got answered wrong at least once — that is the entry
+ * condition for being scheduled at all — so "wrong" is not a distinction the
+ * queue can draw. What it can draw is what has happened *since*, which is the
+ * part that changes what you should do:
+ *
+ * - `Struggling`  missed more than once, and not right since. Read the topic.
+ * - `Relearning`  missed once, not right since. Answer it again.
+ * - `OnTrack`     right since the miss, spacing out towards graduation.
+ *
+ * Read off `repetitions` (consecutive correct answers) rather than stored, in
+ * keeping with everything else here being a fold over the log.
+ */
+export enum ReviewStage {
+  Struggling = "struggling",
+  Relearning = "relearning",
+  OnTrack = "on-track",
 }
