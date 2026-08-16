@@ -118,6 +118,11 @@ export function startCapture(doc: Document, options: CaptureOptions): CaptureHan
 
   async function submit(state: QuestionState, verdict: Verdict): Promise<void> {
     const { descriptor } = state;
+    // Stopped here rather than by the control, because this is the moment an
+    // answer exists. Null for a question nobody timed, and the field is left
+    // off entirely in that case: a zero would read as an instant answer.
+    const durationMs = options.clocks?.stop(descriptor.goId) ?? null;
+
     const attempt: AttemptInput = {
       eventId: `${descriptor.goId}:${options.pageLoadId}`,
       goId: descriptor.goId,
@@ -131,6 +136,7 @@ export function startCapture(doc: Document, options: CaptureOptions): CaptureHan
       type: descriptor.type,
       marks: descriptor.marks,
       pageLoadId: options.pageLoadId,
+      ...(durationMs === null ? {} : { durationMs }),
       provisional: isProvisionalKey(descriptor.goId),
     };
 

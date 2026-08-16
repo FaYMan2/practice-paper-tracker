@@ -9,6 +9,7 @@ import {
 import { formatDate, pluralize, slugToTitle, topicDisplayName } from "../utils/format";
 import { CLS, SEL, describeQuestions } from "../utils/selectors";
 import { CrawlState } from "../utils/crawl";
+import { ClockState, createClocks } from "../utils/timing";
 import type { AttemptInput, Message, QuestionMark, TopicSummary } from "../types";
 import { MessageKind } from "../utils/messaging";
 import { FIXTURES, loadHtml } from "./fixtures";
@@ -457,6 +458,101 @@ describe("star control", () => {
     document.querySelector<HTMLElement>(`.${UI_CLASS.star}`)!.click();
 
     expect(onStar).toHaveBeenCalledWith(goId, false);
+  });
+});
+
+describe("question timer", () => {
+  let now = 2_000_000;
+  const advance = (ms: number) => {
+    now += ms;
+  };
+
+  function paintTimers(clocks = createClocks(() => now)) {
+    const { questions } = mountPage();
+    paintQuestionMarkers(document, {
+      questions,
+      marks: {},
+      topicSlug: "discrete-mathematics",
+      topicTitles: {},
+      onStar: () => undefined,
+      clocks,
+    });
+    return clocks;
+  }
+
+  const timers = () => [...document.querySelectorAll<HTMLElement>(`.${UI_CLASS.timer}`)];
+
+  it("offers a clock on every question", () => {
+    paintTimers();
+
+    expect(timers()).toHaveLength(questionsOnPage().length);
+    expect(timers()[0]!.className).not.toContain(UI_CLASS.timerRunning);
+  });
+
+  it("paints none where nothing could stop them", () => {
+    // No clocks means capture is not running, and a timer that can be started
+    // but never stopped is worse than no timer.
+    const { questions } = mountPage();
+    paintQuestionMarkers(document, {
+      questions,
+      marks: {},
+      topicSlug: "discrete-mathematics",
+      topicTitles: {},
+      onStar: () => undefined,
+    });
+
+    expect(timers()).toHaveLength(0);
+  });
+
+  it("starts the clock for its own question on the first click", () => {
+    const clocks = paintTimers();
+    const [first, second] = questionsOnPage();
+
+    timers()[0]!.click();
+
+    expect(clocks.read(first!).state).toBe(ClockState.Running);
+    expect(clocks.read(second!).state).toBe(ClockState.Idle);
+    expect(timers()[0]!.className).toContain(UI_CLASS.timerRunning);
+  });
+
+  it("throws the run away when a running clock is clicked again", () => {
+    const clocks = paintTimers();
+    const goId = questionsOnPage()[0]!;
+
+    timers()[0]!.click();
+    advance(20_000);
+    timers()[0]!.click();
+
+    expect(clocks.read(goId).state).toBe(ClockState.Idle);
+    expect(timers()[0]!.textContent).not.toContain(":");
+  });
+
+  it("will not restart a clock the answer already stopped", () => {
+    // A stopped clock is a record. Restarting it would offer to overwrite a
+    // measurement with one taken after you already knew the answer.
+    const clocks = paintTimers();
+    const goId = questionsOnPage()[0]!;
+
+    timers()[0]!.click();
+    advance(30_000);
+    clocks.stop(goId);
+    timers()[0]!.click();
+
+    expect(clocks.read(goId)).toEqual({ state: ClockState.Stopped, elapsedMs: 30_000 });
+  });
+
+  it("keeps counting through a repaint", () => {
+    // Toggling a star rebuilds every one of these nodes. The clock survives
+    // because its state lives in the registry, not in the button.
+    const clocks = paintTimers();
+    const goId = questionsOnPage()[0]!;
+
+    timers()[0]!.click();
+    advance(45_000);
+    paintTimers(clocks);
+
+    expect(clocks.read(goId).state).toBe(ClockState.Running);
+    expect(timers()[0]!.textContent).toContain("0:45");
   });
 });
 

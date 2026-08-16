@@ -1,6 +1,7 @@
 /** Types shared by the injected UI components. */
 
 import type { QuestionMark } from "../types";
+import type { QuestionClocks } from "../utils/timing";
 
 /** How a question should be marked, once the current topic is taken into account. */
 export type MarkerKind = "solved" | "wrong" | "elsewhere";
@@ -28,4 +29,9 @@ export interface PaintMarkersInput {
   topicTitles: Record<string, string | null>;
   /** Omit to paint no star controls, which is what the tests without a writer do. */
   onStar?: (goId: string, starred: boolean) => void;
+  /**
+   * The page's clocks. Omit to paint no timers — a page whose answers cannot be
+   * captured must not offer to time them, since nothing would stop the clock.
+   */
+  clocks?: QuestionClocks;
 }

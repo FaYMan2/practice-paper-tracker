@@ -69,6 +69,27 @@ export function formatPercent(fraction: number | null): string {
   return `${Math.round(fraction * 100)}%`;
 }
 
+/**
+ * A duration as a clock reads it: "0:47", "2:05", "1:03:20".
+ *
+ * Seconds are always two digits so the column does not jitter as it counts, and
+ * the hour only appears when there is one — a question that took an hour is a
+ * different kind of event from one that took two minutes, and padding every
+ * reading to "0:02:05" to accommodate it makes the common case harder to scan.
+ */
+export function formatDuration(ms: number | null): string | null {
+  if (ms === null) return null;
+
+  const total = Math.max(0, Math.round(ms / 1000));
+  const seconds = String(total % 60).padStart(2, "0");
+  const minutes = Math.floor(total / 60) % 60;
+  const hours = Math.floor(total / 3600);
+
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`
+    : `${minutes}:${seconds}`;
+}
+
 /** "1 attempt" / "3 attempts". */
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
