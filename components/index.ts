@@ -14,6 +14,7 @@ export * from "./Notice";
 export * from "./ProgressStrip";
 export * from "./ResumeLink";
 export * from "./StarButton";
+export * from "./Timer";
 export * from "./TopicBadge";
 export * from "./constants";
 export * from "./util";

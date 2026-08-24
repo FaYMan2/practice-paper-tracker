@@ -16,6 +16,7 @@ import {
   NO_VALUE,
   examDisplayName,
   formatDate,
+  formatDuration,
   pluralize,
   topicDisplayName,
 } from "../../../utils/format";
@@ -28,7 +29,7 @@ import {
   NO_QUESTIONS_LABEL,
 } from "../constants";
 import { Badge, cn } from "../ui";
-import { STARRED_TITLE, STATUS_TEXT } from "./constants";
+import { STARRED_TITLE, STATUS_TEXT, TIMED_TITLE } from "./constants";
 
 export * from "./constants";
 
@@ -80,6 +81,8 @@ function Question({
   row: TopicQuestionRow;
   titles: Record<string, string | null>;
 }) {
+  const timed = formatDuration(row.lastDurationMs);
+
   return (
     <li className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-t border-line px-4 py-2 first:border-t-0">
       <a
@@ -96,6 +99,15 @@ function Question({
         <Star className="size-3.5 self-center fill-accent text-accent" aria-label={STARRED_TITLE} />
       ) : null}
       <Badge tone={STATUS_TONE[row.status]}>{STATUS_TEXT[row.status]}</Badge>
+      {/*
+        Only for a question that was actually timed. Most were not, and a "0:00"
+        or a dash on every other row would turn a real measurement into noise.
+      */}
+      {timed === null ? null : (
+        <span className="num text-xs font-semibold text-muted" title={TIMED_TITLE}>
+          {timed}
+        </span>
+      )}
       <span className="text-xs text-muted">{metaText(row, slug, titles)}</span>
     </li>
   );

@@ -21,6 +21,11 @@ function projectAttempt(
     lastAttemptAt: attempt.ts,
     attemptCount: (previous?.attemptCount ?? 0) + 1,
     firstVerdict: previous?.firstVerdict ?? attempt.verdict,
+    // Kept when this attempt was not timed: answering again with the clock
+    // untouched says nothing about how long the question takes, and blanking
+    // the figure would throw away the only measurement there is. Matches what
+    // the full rebuild computes, which is what keeps the two from drifting.
+    lastDurationMs: attempt.durationMs ?? previous?.lastDurationMs ?? null,
   };
   return projected;
 }

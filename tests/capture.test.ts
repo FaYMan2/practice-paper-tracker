@@ -3,6 +3,7 @@ import { startCapture } from "../utils/capture";
 import { MessageKind } from "../utils/messaging";
 import { ATTR, CLS, SEL } from "../utils/selectors";
 import type { AttemptInput, Message } from "../types";
+import { ClockState, MAX_TIMED_MS, createClocks } from "../utils/timing";
 import { FIXTURES, loadHtml } from "./fixtures";
 
 /**
@@ -244,6 +245,76 @@ describe("append-only across page loads", () => {
     expect(second.attempts[0]!.verdict).toBe("correct");
     // Both survive; neither overwrites the other.
     expect(first.attempts[0]!.verdict).toBe("wrong");
+  });
+});
+
+describe("timing an answer", () => {
+  /** Capture with a clock the test drives, since nothing here waits a second. */
+  function mountTimed() {
+    document.body.innerHTML = loadHtml(FIXTURES.dataStructureP1).body.innerHTML;
+
+    let now = 5_000_000;
+    const clocks = createClocks(() => now);
+    const attempts: AttemptInput[] = [];
+
+    const handle = startCapture(document, {
+      topicSlug: "data-structure",
+      pageNo: 1,
+      pageLoadId: "load-t",
+      clocks,
+      send: (async (message: Message) => {
+        if (message.kind === MessageKind.RecordAttempt) attempts.push(message.attempt);
+        return { ok: true as const, data: { stored: true, duplicate: false } };
+      }) as never,
+    })!;
+
+    return {
+      clocks,
+      attempts,
+      handle,
+      questions: [...document.querySelectorAll(SEL.question)],
+      advance: (ms: number) => {
+        now += ms;
+      },
+    };
+  }
+
+  it("saves how long a timed question took, stopped by the stamp", async () => {
+    const page = mountTimed();
+
+    page.clocks.start("523106");
+    page.advance(42_000);
+    stamp(page.questions[0]!, "correct");
+    await flush();
+
+    expect(page.attempts[0]!.durationMs).toBe(42_000);
+    // Stopped by the answer, not left running behind it.
+    expect(page.clocks.read("523106").state).toBe(ClockState.Stopped);
+  });
+
+  it("leaves the field off entirely for a question nobody timed", async () => {
+    // Absent, not zero: a zero would read as an instant answer and drag every
+    // average built on this towards nonsense.
+    const page = mountTimed();
+
+    stamp(page.questions[0]!, "wrong");
+    await flush();
+
+    expect(page.attempts[0]!.durationMs).toBeUndefined();
+    expect("durationMs" in page.attempts[0]!).toBe(false);
+  });
+
+  it("saves nothing for a clock that ran too long to believe", async () => {
+    const page = mountTimed();
+
+    page.clocks.start("523106");
+    page.advance(MAX_TIMED_MS + 1);
+    stamp(page.questions[0]!, "correct");
+    await flush();
+
+    // The answer is still recorded; only the timing is thrown away.
+    expect(page.attempts).toHaveLength(1);
+    expect(page.attempts[0]!.durationMs).toBeUndefined();
   });
 });
 

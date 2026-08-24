@@ -15,6 +15,7 @@ import { UI_CLASS } from "../constants";
 import type { MarkerKind, MarkerView, PaintMarkersInput, PaintTarget } from "../types";
 import { el } from "../util";
 import { StarButton } from "../StarButton";
+import { Timer } from "../Timer";
 import { GLYPH } from "./constants";
 
 export * from "./constants";
@@ -123,6 +124,26 @@ function paintStar(
 }
 
 /**
+ * The stopwatch, after the star, so a question reads label, flag, clock.
+ *
+ * Painted only where clocks exist. On a page where capture never started there
+ * is nothing to stop a running timer, and a control that can be started and
+ * never stopped is worse than no control.
+ */
+function paintTimer(
+  doc: Document,
+  anchor: Element,
+  target: PaintTarget,
+  clocks: PaintMarkersInput["clocks"],
+): void {
+  if (!clocks) return;
+
+  const star = anchor.parentElement?.querySelector(`.${UI_CLASS.star}`);
+  const after = star ?? anchor;
+  after.insertAdjacentElement("afterend", Timer(doc, target.goId, clocks));
+}
+
+/**
  * Repaints one question: its star, always, and its verdict badge when there is
  * one. Returns whether a badge ended up on it.
  *
@@ -141,9 +162,12 @@ function paintQuestion(
   // replaces rather than stacks.
   anchor.parentElement?.querySelector(`.${UI_CLASS.badge}`)?.remove();
   anchor.parentElement?.querySelector(`.${UI_CLASS.star}`)?.remove();
+  anchor.parentElement?.querySelector(`.${UI_CLASS.timer}`)?.remove();
 
   const mark = input.marks[target.goId];
   paintStar(doc, anchor, target, mark, input.onStar);
+
+  paintTimer(doc, anchor, target, input.clocks);
 
   if (!mark || mark.status === "unattempted") return false;
 

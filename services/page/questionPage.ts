@@ -1,6 +1,7 @@
 /** Everything that happens on a page of questions. */
 
 import { describeQuestions, questionBlocks } from "../../utils/selectors";
+import { createClocks } from "../../utils/timing";
 import type { PageInfo } from "../../utils/url";
 import { reportPageHealth } from "./health";
 import { indexPage } from "./indexing";
@@ -19,6 +20,7 @@ function buildContext(doc: Document, href: string, page: PageInfo): QuestionPage
     pageNo: page.pageNo ?? 1,
     resume: page.resume,
     questions: describeQuestions(doc, topicSlug),
+    clocks: createClocks(),
   };
   return context;
 }
@@ -38,11 +40,13 @@ export async function runQuestionPage(
 
   const context = buildContext(doc, href, page);
 
-  startTracking(context);
+  // Timers are offered only where capture is running to stop them, so what the
+  // markers paint depends on whether tracking actually started.
+  const tracking = startTracking(context);
   followProgress(doc, context.topicSlug, href);
   followResumeHash(context);
   applyResume(context, context.resume);
 
   await indexPage(context);
-  await paintMarkers(context);
+  await paintMarkers(context, tracking === null ? null : context.clocks);
 }

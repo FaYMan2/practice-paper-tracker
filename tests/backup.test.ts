@@ -125,6 +125,31 @@ describe("import into an empty database", () => {
     expect((await restored.attempts.toArray())[0]?.choices[0]).toMatchObject({ label: "C" });
   });
 
+  it("brings the timings back with the answers", async () => {
+    // A duration is as unrecoverable as a chosen option: nothing can replay how
+    // long a question took, so an import that quietly dropped it would lose it
+    // for good while reporting success.
+    await recordAttempt(attempt("523106", { durationMs: 84_000 }));
+    const backup = await exportBackup(db);
+
+    const restored = await freshDatabase();
+    await importBackup(backup, restored);
+
+    expect((await restored.attempts.toArray())[0]?.durationMs).toBe(84_000);
+    expect((await restored.questions.get("523106"))?.lastDurationMs).toBe(84_000);
+  });
+
+  it("invents no timing for an attempt that never had one", async () => {
+    await recordSomeWork();
+    const backup = await exportBackup(db);
+
+    const restored = await freshDatabase();
+    await importBackup(backup, restored);
+
+    expect((await restored.attempts.toArray())[0]?.durationMs).toBeUndefined();
+    expect((await restored.questions.get("523106"))?.lastDurationMs).toBeNull();
+  });
+
   it("reports what it merged", async () => {
     await recordSomeWork();
     const backup = await exportBackup(db);
@@ -205,6 +230,7 @@ describe("import into a database that has kept being used", () => {
             lastAttemptAt: 1_000,
             attemptCount: 1,
             firstVerdict: "correct",
+            lastDurationMs: null,
           },
         ],
       }),
@@ -215,6 +241,7 @@ describe("import into a database that has kept being used", () => {
       status: "wrong",
       attemptCount: 2,
       firstVerdict: "correct",
+      lastDurationMs: null,
     });
   });
 
@@ -346,6 +373,7 @@ describe("drift between the cache and the log", () => {
       status: "unattempted",
       attemptCount: 0,
       firstVerdict: null,
+      lastDurationMs: null,
       lastAttemptAt: null,
     });
 

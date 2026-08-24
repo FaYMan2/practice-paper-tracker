@@ -3,6 +3,7 @@
 import { paintQuestionMarkers } from "../../components";
 import { MessageKind, sendToBackground } from "../../utils/messaging";
 import { getSummaries } from "../../utils/summary/mirror";
+import type { QuestionClocks } from "../../utils/timing";
 import type { TopicSummary } from "../../types";
 import type { QuestionPageContext } from "./types";
 
@@ -20,7 +21,14 @@ function titlesBySlug(summaries: Record<string, TopicSummary>): Record<string, s
  * Repaints after a star is written rather than assuming the write landed, so
  * what is on screen is always what the background actually stored.
  */
-export async function paintMarkers(context: QuestionPageContext): Promise<void> {
+export async function paintMarkers(
+  context: QuestionPageContext,
+  /**
+   * Null where capture did not start. Nothing would stop a clock on such a
+   * page, and a timer that can only be started is a promise we cannot keep.
+   */
+  clocks: QuestionClocks | null = null,
+): Promise<void> {
   const goIds = context.questions.map((question) => question.goId);
   const [marks, summaries] = await Promise.all([
     sendToBackground({ kind: MessageKind.GetQuestionMarks, goIds }),
@@ -38,7 +46,7 @@ export async function paintMarkers(context: QuestionPageContext): Promise<void> 
         console.warn("[pptr] could not star", goId, result.error);
         return;
       }
-      void paintMarkers(context);
+      void paintMarkers(context, clocks);
     });
   };
 
@@ -48,6 +56,9 @@ export async function paintMarkers(context: QuestionPageContext): Promise<void> 
     topicSlug: context.topicSlug,
     topicTitles: titlesBySlug(summaries),
     onStar,
+    // A repaint rebuilds every timer, which is safe because a clock's state
+    // lives in the registry rather than in the button that draws it.
+    ...(clocks ? { clocks } : {}),
   });
 
   console.info("[pptr] marked", painted, "of", context.questions.length);

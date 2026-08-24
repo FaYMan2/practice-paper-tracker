@@ -26,6 +26,10 @@ export const UI_CLASS = {
   crawlNote: "pptr-crawl-note",
   star: "pptr-star",
   starOn: "pptr-star-on",
+  timer: "pptr-timer",
+  timerRunning: "pptr-timer-running",
+  timerStopped: "pptr-timer-stopped",
+  timerAbandoned: "pptr-timer-abandoned",
   notice: "pptr-notice",
   noticeAction: "pptr-notice-action",
   /** Briefly outlines the question a resume link landed on. */

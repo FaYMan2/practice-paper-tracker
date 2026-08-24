@@ -100,6 +100,8 @@ function readAttempt(value: unknown): AttemptInput | null {
   const topicSlug = nullableStr(value["topicSlug"]);
   if (!eventId || !goId || !verdict || ts === null || !topicSlug) return null;
 
+  const durationMs = nullableNum(value["durationMs"]);
+
   const attempt: AttemptInput = {
     eventId,
     goId,
@@ -113,6 +115,10 @@ function readAttempt(value: unknown): AttemptInput | null {
     type: typeOf(value["type"]),
     marks: num(value["marks"], 0),
     pageLoadId: str(value["pageLoadId"], eventId),
+    // Carried through only where it exists. Defaulting it to a number would
+    // invent a measurement for every attempt that was never timed, and the
+    // projection cannot tell an invented duration from a real one.
+    ...(durationMs === null ? {} : { durationMs }),
     ...(value["provisional"] === true ? { provisional: true } : {}),
   };
   return attempt;
@@ -140,6 +146,7 @@ function readQuestion(value: unknown): QuestionRecord | null {
     lastAttemptAt: nullableNum(value["lastAttemptAt"]),
     attemptCount: num(value["attemptCount"], 0),
     firstVerdict: verdictOf(value["firstVerdict"]),
+    lastDurationMs: nullableNum(value["lastDurationMs"]),
   };
   return question;
 }

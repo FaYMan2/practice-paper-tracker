@@ -44,6 +44,15 @@ export interface AttemptRecord {
   type: QuestionType;
   marks: number;
   pageLoadId: string;
+  /**
+   * How long the question took, when the timer beside it was running.
+   *
+   * Optional, and absent far more often than not: it is recorded only for a
+   * clock the reader started and only when it stopped inside the sanity cap.
+   * An absent duration means "not measured" — never zero, which would read as
+   * an instant answer and drag every average built on this towards nonsense.
+   */
+  durationMs?: number;
   /** True when identity fell back to a synthetic key (no GateOverflow anchor). */
   provisional?: boolean;
 }

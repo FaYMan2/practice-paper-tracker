@@ -3,6 +3,7 @@
 import type { Choice, Message, Response, SendResult } from "../../types";
 import type { MessageKind } from "../messaging";
 import type { QuestionDescriptor } from "../selectors";
+import type { QuestionClocks } from "../timing";
 
 /** How capture reaches the background writer. Injected so tests can observe it. */
 export type SendFn = <M extends Message>(
@@ -19,6 +20,14 @@ export interface CaptureOptions {
    */
   pageLoadId: string;
   send?: SendFn;
+  /**
+   * The page's question clocks, when the timers are mounted.
+   *
+   * Capture stops the clock as it writes: the stamp is the only moment that
+   * knows an answer has been given, so it is the only honest place to stop
+   * timing one. Omitted, nothing is timed and no attempt carries a duration.
+   */
+  clocks?: QuestionClocks;
   /** Surfaces an orphaned content script to the user. */
   onSendFailure?: (failure: CaptureFailure) => void;
 }

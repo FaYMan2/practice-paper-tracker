@@ -137,6 +137,27 @@ describe("rebuildQuestionProjections", () => {
     ]);
   });
 
+  it("keeps the most recent timing, not the most recent attempt's", async () => {
+    // Answering again without starting the clock says nothing about how long
+    // the question takes. Reading `last.durationMs` would blank a real
+    // measurement the moment the question is answered untimed.
+    await db.attempts.bulkAdd([
+      attempt({ goId: "a", eventId: "a:1", ts: 1_000, durationMs: 40_000 }),
+      attempt({ goId: "a", eventId: "a:2", ts: 2_000, durationMs: 25_000 }),
+      attempt({ goId: "a", eventId: "a:3", ts: 3_000 }),
+    ]);
+    await rebuildQuestionProjections(db);
+
+    expect((await db.questions.get("a"))?.lastDurationMs).toBe(25_000);
+  });
+
+  it("reports no timing for a question nobody ever timed", async () => {
+    await db.attempts.add(attempt({ goId: "a", eventId: "a:1" }));
+    await rebuildQuestionProjections(db);
+
+    expect((await db.questions.get("a"))?.lastDurationMs).toBeNull();
+  });
+
   it("keeps starred, which is user curation and not derived", async () => {
     await db.attempts.add(attempt({ goId: "a", eventId: "a:1" }));
     await rebuildQuestionProjections(db);
@@ -156,6 +177,7 @@ describe("rebuildQuestionProjections", () => {
       status: "unattempted",
       attemptCount: 0,
       firstVerdict: null,
+      lastDurationMs: null,
       lastAttemptAt: null,
     });
   });
@@ -171,6 +193,7 @@ describe("rebuildQuestionProjections", () => {
       lastAttemptAt: null,
       attemptCount: 0,
       firstVerdict: null,
+      lastDurationMs: null,
     };
     await db.questions.put(seen);
     await rebuildQuestionProjections(db);
@@ -196,6 +219,7 @@ describe("questionMarks", () => {
       lastAttemptAt: null,
       attemptCount: 0,
       firstVerdict: null,
+      lastDurationMs: null,
     });
 
     const marks = await questionMarks(["a", "b", "c"], db);

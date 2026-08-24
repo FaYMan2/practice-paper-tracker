@@ -1,0 +1,38 @@
+/* The stopwatch beside a question. */
+
+.pptr.pptr-timer {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: #94a3b8;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.pptr.pptr-timer:hover {
+  color: #b45309;
+}
+
+/* Running is the one state worth catching out of the corner of an eye. */
+.pptr.pptr-timer.pptr-timer-running {
+  background: #fef3c7;
+  color: #b45309;
+  font-weight: 600;
+}
+
+.pptr.pptr-timer.pptr-timer-stopped {
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 600;
+  cursor: default;
+}
+
+.pptr.pptr-timer.pptr-timer-abandoned {
+  color: #94a3b8;
+  cursor: default;
+}

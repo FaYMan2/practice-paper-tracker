@@ -30,6 +30,7 @@ export function startTracking(context: QuestionPageContext): CaptureHandle | nul
     topicSlug: context.topicSlug,
     pageNo: context.pageNo,
     pageLoadId: crypto.randomUUID(),
+    clocks: context.clocks,
     onSendFailure,
   });
 
