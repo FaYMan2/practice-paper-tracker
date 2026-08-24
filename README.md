@@ -85,6 +85,14 @@ There's no review mode: you answer on the real page against the site's own marki
 
 The schedule itself is stored nowhere. SM-2 is a deterministic fold over a question's attempts, so it's recomputed from the log whenever it's needed — the same way the pass/fail state is. Nothing to migrate, nothing extra in a backup, and no second copy that can disagree with what you actually answered.
 
+### Weak areas, ranked honestly
+
+A **Weak areas** tab answers the question the progress tab cannot: not "how much have I covered" but "what should I do next". Every topic you have worked on, coloured by how often you get its questions right *first time*, and beneath it a list of what to revise, worst first.
+
+It ranks on the first-try figure rather than current status, because a question you missed and later got right counts as correct everywhere else — which is the right measure of coverage and hides the exact thing this page is for.
+
+The ordering is the interesting part. Sorting by accuracy puts "0%, one question" above "45% across thirty", which is backwards as advice: the first is bad luck and the second is a Saturday's work. So the ranking uses the upper bound of the [Wilson score interval](https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval) — the most generous reading of the evidence — and a topic only appears when even that reading is poor. Each row shows the claim being made ("at best 64%"), so the order is never mysterious. Topics with too few answers to judge are listed separately as "too early to say" rather than dropped or spuriously placed.
+
 ### Timing a question
 
 A stopwatch sits beside each question's star. Click it and it counts up; answer the question and the stamp that records your attempt stops the clock and saves how long it took. Click a running one to throw that run away.

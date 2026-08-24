@@ -25,6 +25,7 @@ export enum QuestionFilter {
 export enum DashboardTab {
   Home = "home",
   Review = "review",
+  Weak = "weak",
   Backups = "backups",
 }
 

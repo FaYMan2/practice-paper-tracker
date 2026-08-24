@@ -26,4 +26,5 @@ export * from "./SubjectCard";
 export * from "./SubjectDialog";
 export * from "./SubjectGrid";
 export * from "./TopicTable";
+export * from "./WeakAreas";
 export * from "./constants";

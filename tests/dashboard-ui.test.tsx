@@ -8,6 +8,7 @@ import {
   ReviewPanel,
   SubjectGrid,
   TopicTable,
+  WeakAreas,
 } from "../components/dashboard";
 import { QuestionFilter } from "../utils/dashboard";
 import { mergeSummaries } from "../utils/summary/mirror";
@@ -17,12 +18,13 @@ import type {
   Message,
   RebuildAllResponse,
   TopicDetail,
+  TopicQuestionRow,
   TopicSummary,
 } from "../types";
 import { BackupRejection } from "../utils/backup";
 import type { Backup, ImportOutcome } from "../utils/backup";
 import type { ReviewItem, ReviewQueue } from "../utils/review";
-import { CHILD, SUBJECT, question, viewOf } from "./factories";
+import { CHILD, SUBJECT, question, summary, viewOf } from "./factories";
 
 beforeEach(() => {
   fakeBrowser.reset();
@@ -147,6 +149,80 @@ describe("TopicTable", () => {
   });
 });
 
+/**
+ * The point of this view is that it ranks on evidence. A list that puts a
+ * single unlucky answer at the top is advice to revise something you have
+ * barely met, which is worse than no list.
+ */
+describe("WeakAreas", () => {
+  const weak = summary("hashing", {
+    title: "Hashing",
+    parentSlug: "data-structure",
+    solvedRows: 15,
+    correctRows: 12,
+    wrongRows: 3,
+    firstTryCorrectRows: 6,
+    indexedRows: 20,
+  });
+  const unlucky = summary("queue", {
+    title: "Queue",
+    parentSlug: "data-structure",
+    solvedRows: 1,
+    correctRows: 0,
+    wrongRows: 1,
+    firstTryCorrectRows: 0,
+    indexedRows: 20,
+  });
+
+  function renderWeak(onOpen = () => undefined) {
+    render(<WeakAreas view={viewOf([SUBJECT, weak, unlucky])} onOpen={onOpen} />);
+  }
+
+  const card = () => within(screen.getByRole("region", { name: /worst first/i }));
+  /** The ranked list itself, which the "too early" block sits below rather than in. */
+  const ranking = () => within(card().getByRole("list"));
+
+  it("ranks a well-evidenced weak topic above one bad answer", () => {
+    renderWeak();
+
+    // Hashing is ranked; Queue's single miss is not, so it never reaches the list.
+    expect(ranking().getByText("Hashing")).toBeTruthy();
+    expect(ranking().queryByText("Queue")).toBeNull();
+    // Held back from the ranking, and said so rather than dropped.
+    expect(screen.getByText(/Too early to say/)).toBeTruthy();
+  });
+
+  it("shows first-try accuracy, not where the topic stands now", () => {
+    // 12 of 15 right eventually, 6 of 15 first time. The second is the number
+    // that says anything about an exam.
+    renderWeak();
+
+    expect(ranking().getByText("6 of 15 first time")).toBeTruthy();
+    expect(ranking().getByText("40%")).toBeTruthy();
+  });
+
+  it("says what the ranking is actually on", () => {
+    renderWeak();
+
+    expect(ranking().getByText(/at best \d+%/)).toBeTruthy();
+  });
+
+  it("opens the subject a weak topic belongs to", () => {
+    const onOpen = vi.fn();
+    renderWeak(onOpen);
+
+    fireEvent.click(ranking().getByRole("button", { name: /Hashing/ }));
+
+    expect(onOpen).toHaveBeenCalledWith("data-structure");
+  });
+
+  it("asks for some answers rather than charting an empty syllabus", () => {
+    render(<WeakAreas view={viewOf([summary("stack", { indexedRows: 20 })])} onOpen={() => undefined} />);
+
+    expect(screen.getByText(/Nothing to diagnose yet/)).toBeTruthy();
+  });
+});
+
 describe("QuestionList", () => {
   it("links each question to itself on the site", () => {
     render(
@@ -198,6 +274,42 @@ describe("QuestionList", () => {
     expect(screen.queryByText("Q1")).toBeNull();
     expect(screen.getByText("Q2")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Correct 1" })).toBeTruthy();
+  });
+
+  it("shows no time at all for a row an older worker sent", () => {
+    // The reported bug, end to end: a page newer than the background worker
+    // gets rows with no `lastDurationMs` key, and every one of them read
+    // "NaN:NaN" between the verdict badge and the exam name.
+    const { lastDurationMs: _absent, ...older } = question(1, { status: "correct" });
+
+    render(
+      <QuestionList
+        slug="stack"
+        titles={{ stack: "Stack" }}
+        detail={{ slug: "stack", rows: [older as TopicQuestionRow] }}
+        loading={false}
+        filter={QuestionFilter.All}
+        onFilter={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText(/NaN/)).toBeNull();
+    expect(screen.getByText("Q1")).toBeTruthy();
+  });
+
+  it("shows how long a timed question took", () => {
+    render(
+      <QuestionList
+        slug="stack"
+        titles={{ stack: "Stack" }}
+        detail={{ slug: "stack", rows: [question(1, { lastDurationMs: 95_000 })] }}
+        loading={false}
+        filter={QuestionFilter.All}
+        onFilter={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText("1:35")).toBeTruthy();
   });
 
   it("says it is loading rather than showing an empty topic", () => {
