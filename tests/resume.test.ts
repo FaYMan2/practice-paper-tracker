@@ -20,6 +20,7 @@ function summary(overrides: Partial<TopicSummary> = {}): TopicSummary {
     solvedRows: 12,
     correctRows: 9,
     wrongRows: 3,
+    firstTryCorrectRows: 0,
     distinctSolved: 12,
     totalFromSite: 298,
     indexedRows: 298,

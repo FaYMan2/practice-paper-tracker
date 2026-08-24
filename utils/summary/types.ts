@@ -1,6 +1,6 @@
 /** Types local to summary computation. */
 
-import type { QuestionStatus } from "../../types";
+import type { QuestionStatus, Verdict } from "../../types";
 
 /** One known placement in a topic, from lazy indexing or a crawl. */
 export interface TopicRowInput {
@@ -26,6 +26,12 @@ export interface SummaryInputs {
   rows: TopicRowInput[];
   /** Latest-attempt status per goId, for the goIds appearing in `rows`. */
   statusByGoId: Map<string, QuestionStatus>;
+  /**
+   * Verdict of each question's *earliest* attempt. Null, or absent, for one
+   * never answered — which is why the two maps are separate rather than one
+   * richer record: they have different domains.
+   */
+  firstVerdictByGoId: Map<string, Verdict | null>;
   lastActivityAt: number | null;
 }
 

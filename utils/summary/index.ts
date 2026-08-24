@@ -10,6 +10,7 @@ import { db, INDEX, relatedSlugsOf, type TrackerDB } from "../db";
 import type {
   QuestionRecord,
   QuestionStatus,
+  Verdict,
   RowRecord,
   TopicRecord,
   TopicSummary,
@@ -94,6 +95,12 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
 
   const attempted = rowsInOrder.filter((row) => statusOf(row) !== "unattempted");
   const correct = attempted.filter((row) => statusOf(row) === "correct");
+  // Counted over the same rows as `correct`, so the two are comparable: a
+  // denominator of "attempted rows" for one and something else for the other
+  // would make the gap between them meaningless.
+  const firstTry = attempted.filter(
+    (row) => input.firstVerdictByGoId.get(row.goId) === "correct",
+  );
 
   // Only rows seen on this topic's own pages can be navigated to: a borrowed
   // row's ordinal numbers a position in the topic it was seen under, so
@@ -120,6 +127,7 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
     solvedRows: attempted.length,
     correctRows: correct.length,
     wrongRows: attempted.length - correct.length,
+    firstTryCorrectRows: firstTry.length,
     distinctSolved: R.uniq(R.pluck("goId", attempted)).length,
     totalFromSite: input.totalFromSite,
     indexedRows,
@@ -203,15 +211,19 @@ function toRowInput(row: RowRecord, borrowed: boolean): TopicRowInput {
   return input;
 }
 
-/** Latest status and attempt time per question, for the rows in hand. */
+/** What the log says about each question, for the rows in hand. */
 interface QuestionFacts {
   statusByGoId: Map<string, QuestionStatus>;
+  firstVerdictByGoId: Map<string, Verdict | null>;
   lastAttemptByGoId: Map<string, number | null>;
 }
 
 function factsFrom(questions: QuestionRecord[]): QuestionFacts {
   const facts: QuestionFacts = {
     statusByGoId: new Map(questions.map((question) => [question.goId, question.status])),
+    firstVerdictByGoId: new Map(
+      questions.map((question) => [question.goId, question.firstVerdict]),
+    ),
     lastAttemptByGoId: new Map(
       questions.map((question) => [question.goId, question.lastAttemptAt]),
     ),
@@ -241,6 +253,7 @@ function summaryFor(
     lastVisitedPage: topic?.lastVisitedPage ?? null,
     rows,
     statusByGoId: facts.statusByGoId,
+    firstVerdictByGoId: facts.firstVerdictByGoId,
     lastActivityAt: times.length ? Math.max(...times) : null,
   });
 }

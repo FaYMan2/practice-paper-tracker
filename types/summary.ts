@@ -15,6 +15,16 @@ export interface TopicSummary {
   solvedRows: number;
   correctRows: number;
   wrongRows: number;
+  /**
+   * Rows whose question was right the *first* time it was answered.
+   *
+   * `correctRows` counts the latest verdict, which is the right measure of
+   * "how much have I covered" and the wrong one for "what am I weak at": a
+   * question missed and later put right counts as correct there, hiding the
+   * miss. The gap between the two is the interesting number — topics you get
+   * to eventually but rarely first time are what costs marks in an exam hall.
+   */
+  firstTryCorrectRows: number;
   /** Distinct solved questions; the honest floor when indexing is partial. */
   distinctSolved: number;
   totalFromSite: number | null;

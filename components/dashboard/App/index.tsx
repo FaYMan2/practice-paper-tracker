@@ -14,7 +14,7 @@
 import "../theme.css";
 
 import { useState } from "react";
-import { Database, LayoutGrid, Timer } from "lucide-react";
+import { Database, Flame, LayoutGrid, Timer } from "lucide-react";
 import { useDashboard, useReview } from "../../../services/dashboard";
 import {
   DashboardTab,
@@ -39,6 +39,7 @@ import { Overview } from "../Overview";
 import { ReviewPanel } from "../ReviewPanel";
 import { SubjectDialog } from "../SubjectDialog";
 import { SubjectGrid } from "../SubjectGrid";
+import { WeakAreas } from "../WeakAreas";
 import { Badge, Segmented, Tab, TabList, TabPanel, Tabs } from "../ui";
 
 function findGroup(groups: TopicGroup[], key: string | null): TopicGroup | null {
@@ -80,6 +81,10 @@ export function App() {
               <Timer />
               Review
               {queue.due.length > 0 ? <Badge tone="accent">{queue.due.length}</Badge> : null}
+            </Tab>
+            <Tab value={DashboardTab.Weak}>
+              <Flame />
+              Weak areas
             </Tab>
             <Tab value={DashboardTab.Backups}>
               <Database />
@@ -135,6 +140,15 @@ export function App() {
               // A fallback for items from a background that predates the field.
               subjectOf={subjectBySlug(view.groups)}
             />
+          </TabPanel>
+
+          <TabPanel value={DashboardTab.Weak}>
+            {/*
+              Its own section rather than a block on the progress tab: progress
+              answers "where am I", and this answers "what do I do now". Putting
+              the second under the first buries the actionable half.
+            */}
+            <WeakAreas view={view} onOpen={setOpenKey} />
           </TabPanel>
 
           <TabPanel value={DashboardTab.Backups}>

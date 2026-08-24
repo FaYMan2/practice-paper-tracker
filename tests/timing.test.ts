@@ -124,4 +124,17 @@ describe("formatDuration", () => {
   it("passes a missing duration through rather than rendering a zero", () => {
     expect(formatDuration(null)).toBeNull();
   });
+
+  it("renders nothing for a field the worker never sent", () => {
+    // The reported bug: every row of the drill-down read "NaN:NaN". A page can
+    // be newer than the background worker answering it, so the field arrives
+    // absent rather than null, and `undefined / 1000` is NaN.
+    expect(formatDuration(undefined)).toBeNull();
+    expect(formatDuration(Number.NaN)).toBeNull();
+  });
+
+  it("refuses a negative duration rather than clamping it to zero", () => {
+    // "0:00" would report an instant answer that never happened.
+    expect(formatDuration(-1)).toBeNull();
+  });
 });
