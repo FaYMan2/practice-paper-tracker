@@ -77,10 +77,18 @@ export function formatPercent(fraction: number | null): string {
  * different kind of event from one that took two minutes, and padding every
  * reading to "0:02:05" to accommodate it makes the common case harder to scan.
  */
-export function formatDuration(ms: number | null): string | null {
-  if (ms === null) return null;
+export function formatDuration(ms: number | null | undefined): string | null {
+  // Anything that is not a real duration renders as nothing, not as a reading.
+  //
+  // `undefined` is the case that bit: the field arrives from the background
+  // worker, and a page can be newer than the worker that answers it — every
+  // extension reload passes through that state. `ms === null` alone let an
+  // absent field through to the arithmetic, and `undefined / 1000` is NaN, so
+  // every row in the drill-down said "NaN:NaN". Negative is nonsense too, and
+  // clamping it to "0:00" would report an instant answer that never happened.
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return null;
 
-  const total = Math.max(0, Math.round(ms / 1000));
+  const total = Math.round(ms / 1000);
   const seconds = String(total % 60).padStart(2, "0");
   const minutes = Math.floor(total / 60) % 60;
   const hours = Math.floor(total / 3600);
