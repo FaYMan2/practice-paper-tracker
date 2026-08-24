@@ -12,6 +12,7 @@ export function summary(slug: string, overrides: Partial<TopicSummary> = {}): To
     solvedRows: 0,
     correctRows: 0,
     wrongRows: 0,
+    firstTryCorrectRows: 0,
     distinctSolved: 0,
     totalFromSite: null,
     indexedRows: 0,

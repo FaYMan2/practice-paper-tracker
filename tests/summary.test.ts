@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeTopicSummary } from "../utils/summary";
 import type { SummaryInputs, TopicRowInput } from "../utils/summary";
-import type { QuestionStatus } from "../types";
+import type { QuestionStatus, Verdict } from "../types";
 
 function rows(...specs: [ordinal: number, goId: string, marks?: number][]): TopicRowInput[] {
   return specs.map(([ordinal, goId, marks = 1]) => ({ ordinal, goId, marks, borrowed: false }));
@@ -18,6 +18,7 @@ function inputs(overrides: Partial<SummaryInputs> = {}): SummaryInputs {
     lastVisitedPage: null,
     rows: [],
     statusByGoId: new Map<string, QuestionStatus>(),
+    firstVerdictByGoId: new Map<string, Verdict | null>(),
     lastActivityAt: null,
   };
   return { ...base, ...overrides };
@@ -60,6 +61,41 @@ describe("computeTopicSummary", () => {
       wrongRows: 1,
       marksEarned: 2,
     });
+  });
+
+  it("counts first-try correct separately from where the question stands now", () => {
+    // Both are correct today. Only one was right the first time, and that is
+    // the difference a weak-area ranking is built on.
+    const summary = computeTopicSummary(
+      inputs({
+        rows: rows([1, "a"], [2, "b"]),
+        statusByGoId: new Map<string, QuestionStatus>([
+          ["a", "correct"],
+          ["b", "correct"],
+        ]),
+        firstVerdictByGoId: new Map<string, Verdict | null>([
+          ["a", "correct"],
+          ["b", "wrong"],
+        ]),
+      }),
+    );
+
+    expect(summary.correctRows).toBe(2);
+    expect(summary.firstTryCorrectRows).toBe(1);
+  });
+
+  it("credits no first try to a question that has never been answered", () => {
+    const summary = computeTopicSummary(
+      inputs({
+        rows: rows([1, "a"]),
+        firstVerdictByGoId: new Map<string, Verdict | null>([["a", "correct"]]),
+      }),
+    );
+
+    // Unattempted rows are not in the denominator, so they cannot be in the
+    // numerator either — a stale first verdict must not resurrect one.
+    expect(summary.solvedRows).toBe(0);
+    expect(summary.firstTryCorrectRows).toBe(0);
   });
 
   it("resumes at the lowest-ordinal unattempted row regardless of input order", () => {
