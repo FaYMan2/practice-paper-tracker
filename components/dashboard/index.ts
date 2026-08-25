@@ -25,6 +25,7 @@ export * from "./StatusDonut";
 export * from "./SubjectCard";
 export * from "./SubjectDialog";
 export * from "./SubjectGrid";
+export * from "./ThemeToggle";
 export * from "./TopicTable";
 export * from "./WeakAreas";
 export * from "./constants";

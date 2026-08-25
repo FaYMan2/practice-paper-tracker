@@ -24,7 +24,10 @@
 @source "./";
 
 @theme {
-  /* Surfaces, warm-tinted rather than pure grey. */
+  /* ---------------------------------------------------------------- Surfaces
+   * Warm-tinted rather than pure grey, and never pure white or pure black:
+   * both kill depth, and this palette has to hold up in two modes.
+   */
   --color-page: oklch(0.976 0.003 75);
   --color-surface: oklch(1 0 0);
   --color-raised: oklch(0.985 0.003 75);
@@ -34,12 +37,22 @@
   /* Text, three steps and no more. */
   --color-ink: oklch(0.24 0.008 60);
   --color-muted: oklch(0.55 0.012 60);
-  --color-faint: oklch(0.68 0.012 60);
+  --color-faint: oklch(0.66 0.012 60);
 
   /* The one brand colour. Used for actions and for "you", never for data. */
   --color-accent: oklch(0.585 0.128 42);
   --color-accent-strong: oklch(0.5 0.14 42);
   --color-accent-soft: oklch(0.965 0.018 42);
+  /*
+   * What goes *on* a solid fill: the accent button, the accent badge, today's
+   * calendar cell, the red band in the heatmap.
+   *
+   * A token rather than a hard-coded `text-white`, because those fills have to
+   * lighten in dark mode to clear a dark page, and white on a light terracotta
+   * is unreadable. This flips with the mode; the `text-white` it replaces
+   * could not.
+   */
+  --color-on-solid: oklch(1 0 0);
 
   /* Verdicts. These three carry meaning, so they are never used for anything else. */
   --color-correct: oklch(0.55 0.13 150);
@@ -61,15 +74,88 @@
   --color-warn: oklch(0.62 0.14 65);
   --color-warn-soft: oklch(0.965 0.035 75);
 
+  /* ------------------------------------------------------------------ Shape
+   * One scale, three roles, and the rule is written down so it can be checked:
+   * containers are soft, controls are square-ish, and only *status* is a pill.
+   * Pill-shaped buttons next to square cards was the old mixed system.
+   */
   --radius-card: 0.875rem;
+  --radius-control: 0.5rem;
+  --radius-pill: 9999px;
 
   /* Numerals in tables must be the same width or columns cannot be read. */
   --font-numeric: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
+
+  /*
+   * What sits behind a dialog.
+   *
+   * A token with its own alpha rather than `bg-ink/45`: ink is near-white in
+   * dark mode, so that expression painted a *white* wash over a dark page and
+   * the dialog appeared to float on something brighter than the page it came
+   * from. A scrim is always darker than what it covers.
+   */
+  --color-scrim: oklch(0.24 0.008 60 / 0.45);
+
+  /* Shadows are tinted to the page hue. A black shadow on warm stone reads grey. */
+  --shadow-card: 0 1px 2px oklch(0.24 0.008 60 / 0.05);
+  --shadow-pop: 0 12px 40px oklch(0.24 0.008 60 / 0.16);
+}
+
+/*
+ * Dark mode.
+ *
+ * One block, not two, because an inline script in the page head resolves the
+ * system preference into an explicit `data-theme` before first paint. That
+ * keeps this file free of a duplicated palette under `prefers-color-scheme`,
+ * and it means the toggle and the OS setting travel through the same switch.
+ *
+ * Not a mechanical inversion. Surfaces lift as they come forward (page darkest,
+ * dialogs lightest), the accent lightens so it clears its background, and
+ * `on-accent` flips to near-black so a button label stays readable.
+ */
+:root[data-theme="dark"] {
+  --color-page: oklch(0.175 0.006 60);
+  --color-surface: oklch(0.215 0.007 60);
+  --color-raised: oklch(0.25 0.008 60);
+  --color-line: oklch(0.305 0.008 60);
+  --color-line-strong: oklch(0.4 0.01 60);
+
+  --color-ink: oklch(0.945 0.005 75);
+  --color-muted: oklch(0.75 0.012 70);
+  --color-faint: oklch(0.63 0.012 70);
+
+  --color-accent: oklch(0.735 0.125 45);
+  --color-accent-strong: oklch(0.8 0.115 48);
+  --color-accent-soft: oklch(0.3 0.045 42);
+  --color-on-solid: oklch(0.19 0.02 42);
+
+  --color-correct: oklch(0.76 0.15 152);
+  --color-correct-soft: oklch(0.3 0.05 152);
+  --color-wrong: oklch(0.72 0.16 27);
+  --color-wrong-soft: oklch(0.32 0.07 27);
+  --color-remaining: oklch(0.33 0.006 75);
+
+  --color-warn: oklch(0.81 0.13 72);
+  --color-warn-soft: oklch(0.32 0.05 70);
+
+  --color-scrim: oklch(0.06 0.004 60 / 0.66);
+
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-pop: 0 16px 48px oklch(0 0 0 / 0.55);
 }
 
 @layer base {
   * {
     box-sizing: border-box;
+  }
+
+  /* Tells the browser which way to paint scrollbars, form controls and inputs. */
+  :root {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
   }
 
   body {
@@ -82,6 +168,24 @@
       "Segoe UI",
       sans-serif;
     -webkit-font-smoothing: antialiased;
+    /*
+     * No web font, on purpose. Two surfaces share this voice and one of them is
+     * injected into someone else's page, where every kilobyte is paid on their
+     * load; MV3's CSP rules out a CDN, so a face would have to be bundled
+     * twice. The scale and the weights below do the work a typeface would.
+     */
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Headings set their own rhythm; widows are a layout bug, not a copy problem. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   /*
@@ -93,6 +197,16 @@
     color: inherit;
     font: inherit;
     cursor: pointer;
+    /* Kills the 300ms double-tap delay, and the grey flash that replaces our
+       own pressed state on touch. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Every control acknowledges a press. Cheap, and the whole UI feels attached. */
+  button:not(:disabled):active,
+  a[role="button"]:active {
+    transform: translateY(0.5px);
   }
 
   /*
@@ -102,9 +216,42 @@
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /*
+   * Motion is a courtesy, not a feature.
+   *
+   * Everything here is a 150ms colour or transform change, so there is nothing
+   * to degrade gracefully into: under a reduced-motion preference it simply
+   * stops. Written once, globally, because the alternative is remembering it in
+   * every component that ever grows a transition.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
 @utility num {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Long lists render only what is near the viewport.
+ *
+ * A topic can hold sixty questions and a subject several hundred. This is the
+ * cheap half of virtualization: the browser skips layout and paint for
+ * off-screen rows, and `contain-intrinsic-size` keeps the scrollbar honest
+ * while they are skipped.
+ */
+@utility deferred-rows {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
 }

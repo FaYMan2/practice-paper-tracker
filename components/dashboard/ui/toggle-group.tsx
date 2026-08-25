@@ -26,6 +26,14 @@ export interface SegmentedProps<T extends string> {
   onChange: (value: T) => void;
   /** Names the group for anyone not looking at it. */
   label: string;
+  /**
+   * Hide the labels and keep the icons.
+   *
+   * For controls that sit in the page header, where three words of chrome
+   * compete with the page's own title. The label still ships, as the accessible
+   * name and as the tooltip, so nothing is lost to anyone who needs it.
+   */
+  iconOnly?: boolean;
 }
 
 export function Segmented<T extends string>({
@@ -33,6 +41,7 @@ export function Segmented<T extends string>({
   value,
   onChange,
   label,
+  iconOnly = false,
 }: SegmentedProps<T>) {
   return (
     <ToggleGroupPrimitive.Root
@@ -45,22 +54,24 @@ export function Segmented<T extends string>({
       onValueChange={(next) => {
         if (next) onChange(next as T);
       }}
-      className={cn("inline-flex rounded-full border border-line bg-raised p-0.5")}
+      className={cn("inline-flex rounded-control border border-line bg-page p-0.5")}
     >
       {options.map((option) => (
         <ToggleGroupPrimitive.Item
           key={option.value}
           value={option.value}
+          aria-label={iconOnly ? option.label : undefined}
+          title={iconOnly ? option.label : undefined}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+            "inline-flex items-center gap-1.5 rounded-[0.375rem] text-xs font-semibold",
             "whitespace-nowrap text-muted transition-colors hover:text-ink",
-            "data-[state=on]:bg-surface data-[state=on]:text-ink",
-            "data-[state=on]:shadow-[0_1px_2px_rgba(28,25,23,0.08)]",
+            "data-[state=on]:bg-surface data-[state=on]:text-ink data-[state=on]:shadow-card",
             "[&_svg]:size-3.5 [&_svg]:shrink-0",
+            iconOnly ? "size-7 justify-center" : "px-3 py-1",
           )}
         >
           {option.icon}
-          {option.label}
+          {iconOnly ? null : option.label}
         </ToggleGroupPrimitive.Item>
       ))}
     </ToggleGroupPrimitive.Root>
