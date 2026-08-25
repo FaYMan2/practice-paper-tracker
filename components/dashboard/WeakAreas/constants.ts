@@ -11,7 +11,7 @@ import type { BandId } from "../../../utils/weakness";
  * as no background at all.
  */
 export const BAND_STYLE: Record<BandId, { cell: string; bar: string }> = {
-  poor: { cell: "bg-wrong text-white", bar: "bg-wrong" },
+  poor: { cell: "bg-wrong text-on-solid", bar: "bg-wrong" },
   weak: { cell: "bg-wrong-soft text-wrong", bar: "bg-wrong/70" },
   fair: { cell: "bg-warn-soft text-warn", bar: "bg-warn" },
   good: { cell: "bg-correct-soft text-correct", bar: "bg-correct" },
@@ -29,7 +29,7 @@ export const WEAK_NOTE =
   "Ranked on how often you get a question right the first time, and how much " +
   "evidence there is for saying so. A topic missed once is not a weak area.";
 
-export const HEATMAP_TITLE = "Every topic you've worked on";
+export const HEATMAP_TITLE = "Every topic you’ve worked on";
 
 export const HEATMAP_NOTE =
   "Coloured by first-try accuracy. Hover a topic for its numbers, click to open its subject.";
@@ -47,14 +47,14 @@ export const EARLY_NOTE = "Answered, but not enough of yet to rank.";
 
 /** Said when every topic with enough evidence is going well. */
 export const NOTHING_WEAK =
-  "Nothing stands out. Every topic you've answered enough of is going well — " +
-  "the ones below need more questions before there's anything to say.";
+  "Nothing stands out. Every topic you’ve answered enough of is going well. " +
+  "the ones below need more questions before there’s anything to say.";
 
 export const NOTHING_TITLE = "Nothing to diagnose yet";
 
 export const NOTHING_BODY =
   "Answer a few questions and this becomes a ranked list of what to revise, " +
-  "worst first. It needs a handful in a topic before it will say anything — " +
+  "worst first. It needs a handful in a topic before it will say anything. " +
   "one wrong answer is bad luck, not a weakness.";
 
 /** The lead line of a ranked row: "6 of 15 first time". */

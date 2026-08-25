@@ -1,16 +1,16 @@
 /** Everything, at a glance: the ring, the figures, and the weak subjects. */
 
-import { accuracy, coverage, statusCounts } from "../../../utils/dashboard";
+import { accuracy, averageTimeMs, coverage, statusCounts } from "../../../utils/dashboard";
 import type { DashboardView } from "../../../utils/dashboard";
-import { NO_VALUE, formatDate, formatPercent } from "../../../utils/format";
-import { UNKNOWN_TOTAL } from "../constants";
+import { NO_VALUE, formatDate, formatDuration, formatPercent } from "../../../utils/format";
+import { AVERAGED_OVER_TITLE, TIMED_STAT_LABEL, UNKNOWN_TOTAL } from "../constants";
 import { TrendingUp } from "lucide-react";
 import { AccuracyBars } from "../AccuracyBars";
 import { Card, CardBody } from "../ui";
 import { Legend } from "../Legend";
 import { Stat, StatRow } from "../Stat";
 import { StatusDonut } from "../StatusDonut";
-import { NOTHING_ATTEMPTED, WEAKEST_TITLE } from "./constants";
+import { NOTHING_ATTEMPTED, OVERALL_LABEL, WEAKEST_TITLE } from "./constants";
 
 export * from "./constants";
 
@@ -35,7 +35,7 @@ export function Overview({ view }: OverviewProps) {
 
   return (
     <section className="mb-5 grid gap-4 [grid-template-columns:minmax(340px,1.1fr)_minmax(300px,1fr)] max-[900px]:grid-cols-1">
-      <Card className="flex items-center gap-6 p-5">
+      <Card className="flex items-center gap-6 p-5" aria-label={OVERALL_LABEL}>
         <StatusDonut
           stats={overall}
           size={132}
@@ -55,9 +55,26 @@ export function Overview({ view }: OverviewProps) {
             <Stat value={`${overall.wrongRows}`} label="wrong" tone="wrong" />
             <Stat value={formatPercent(accuracy(overall))} label="accuracy" tone="accent" />
             <Stat value={marksText(view)} label="marks" />
+            {/*
+              Only once anything has been timed. A dash here on a profile that
+              has never used the stopwatch is a column of nothing explaining
+              itself, and the tooltip says how thin the evidence is.
+            */}
+            {overall.timedQuestions > 0 ? (
+              <Stat
+                value={formatDuration(averageTimeMs(overall)) ?? NO_VALUE}
+                label={TIMED_STAT_LABEL(overall.timedQuestions)}
+                title={AVERAGED_OVER_TITLE(overall.timedQuestions)}
+              />
+            ) : null}
             <Stat value={formatDate(overall.lastActivityAt) ?? NO_VALUE} label="last solved" />
           </StatRow>
 
+          {/*
+            The legend names the three colours in the ring beside it. It is the
+            only place they are spelled out now: the subject cards below used to
+            repeat the same three counts a second time, at a smaller size.
+          */}
           <Legend counts={counts} />
         </div>
       </Card>

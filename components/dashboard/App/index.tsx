@@ -13,7 +13,7 @@
 
 import "../theme.css";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Database, Flame, LayoutGrid, Timer } from "lucide-react";
 import { useDashboard, useReview } from "../../../services/dashboard";
 import {
@@ -26,14 +26,17 @@ import type { TopicGroup } from "../../../utils/dashboard";
 import { pluralize } from "../../../utils/format";
 import {
   LOADING_LABEL,
+  MAIN_ID,
   PAGE_SUBTITLE,
   PAGE_TITLE,
+  SKIP_LABEL,
   REPAIRED_NOTE,
   SUBJECT_VIEWS,
   SUBJECT_VIEW_LABEL,
   UNSTARTED_HINT,
 } from "../constants";
 import { DataTools } from "../DataTools";
+import { ThemeToggle } from "../ThemeToggle";
 import { EmptyState } from "../EmptyState";
 import { Overview } from "../Overview";
 import { ReviewPanel } from "../ReviewPanel";
@@ -47,13 +50,43 @@ function findGroup(groups: TopicGroup[], key: string | null): TopicGroup | null 
   return groups.find((group) => group.key === key) ?? null;
 }
 
+const TABS: string[] = Object.values(DashboardTab);
+
+/**
+ * The tab, from the address bar.
+ *
+ * Which section you are in is state, and state belongs in the URL: the page
+ * can be reopened where you left it, the toolbar can link straight to the
+ * review queue, and a reload stops throwing you back to Progress. An unknown
+ * or absent fragment reads as Progress rather than as an error.
+ */
+function tabFromHash(): string {
+  const fragment = window.location.hash.replace("#", "");
+  return TABS.includes(fragment) ? fragment : DashboardTab.Home;
+}
+
 export function App() {
   const { view, loading, repaired } = useDashboard();
   const { queue, loading: reviewLoading } = useReview();
 
-  const [tab, setTab] = useState<string>(DashboardTab.Home);
+  const [tab, setTab] = useState<string>(tabFromHash);
   const [subjects, setSubjects] = useState<SubjectView>(SubjectView.Started);
   const [openKey, setOpenKey] = useState<string | null>(null);
+
+  // Back and forward move between sections, so the fragment is the source of
+  // truth rather than a copy of the state written out after the fact.
+  useEffect(() => {
+    const follow = () => setTab(tabFromHash());
+    window.addEventListener("hashchange", follow);
+    return () => window.removeEventListener("hashchange", follow);
+  }, []);
+
+  const openTab = (next: string): void => {
+    setTab(next);
+    // `replaceState`, not a hash assignment: switching tabs is not a navigation
+    // worth burying the previous page under a stack of history entries.
+    window.history.replaceState(null, "", next === DashboardTab.Home ? "#" : `#${next}`);
+  };
 
   // Looked up rather than stored: a summary rewritten while the dialog is open
   // must reach it, and holding the group itself in state would freeze it.
@@ -62,16 +95,31 @@ export function App() {
   const hidden = view.groups.length - shown.length;
 
   return (
-    <main className="mx-auto max-w-[1180px] px-6 pt-8 pb-20">
-      <header className="mb-5">
-        <h1 className="m-0 text-[22px] font-bold tracking-tight">{PAGE_TITLE}</h1>
-        <p className="mt-1 mb-0 text-muted">{PAGE_SUBTITLE}</p>
+    <main id={MAIN_ID} className="mx-auto max-w-[1180px] px-6 pt-8 pb-20">
+      {/*
+        Keyboard users land on the tab bar in one press instead of walking the
+        header. Visually hidden until it has focus, which is the only time it
+        is of any use.
+      */}
+      <a
+        href={`#${MAIN_ID}`}
+        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:rounded-control focus-visible:bg-surface focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:shadow-pop"
+      >
+        {SKIP_LABEL}
+      </a>
+
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="m-0 text-2xl font-bold tracking-[-0.02em]">{PAGE_TITLE}</h1>
+          <p className="mt-1 mb-0 text-[13px] text-muted">{PAGE_SUBTITLE}</p>
+        </div>
+        <ThemeToggle />
       </header>
 
       {loading ? <p className="text-muted italic">{LOADING_LABEL}</p> : null}
 
       {!loading ? (
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={openTab}>
           <TabList>
             <Tab value={DashboardTab.Home}>
               <LayoutGrid />

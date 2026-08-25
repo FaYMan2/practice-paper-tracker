@@ -22,7 +22,9 @@ export function ResumeActions({ summary }: ResumeActionsProps) {
   if (plans.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    /* Never wraps: this sits in a table cell, and a second line here doubles
+       the height of one row and breaks the rhythm of every row around it. */
+    <div className="flex flex-nowrap justify-end gap-1.5">
       {plans.map((plan) => (
         <Button
           key={plan.kind}
@@ -34,7 +36,7 @@ export function ResumeActions({ summary }: ResumeActionsProps) {
             href={plan.href}
             target="_blank"
             rel="noreferrer"
-            title={`${ACTION_TOOLTIP[plan.kind]} — page ${plan.pageNo}, question ${plan.ordinal}`}
+            title={`${ACTION_TOOLTIP[plan.kind]}: page ${plan.pageNo}, question ${plan.ordinal}`}
             onClick={(event) => event.stopPropagation()}
           >
             {ACTION_LABEL[plan.kind]}

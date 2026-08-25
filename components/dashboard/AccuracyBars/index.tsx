@@ -11,8 +11,9 @@ import * as R from "ramda";
 import { accuracy } from "../../../utils/dashboard";
 import type { TopicGroup } from "../../../utils/dashboard";
 import { formatPercent } from "../../../utils/format";
+import { BANDS } from "../../../utils/weakness";
 import { CHART_COLOR } from "../constants";
-import { BAR_SIZE, ROW_HEIGHT, WEAK_THRESHOLD } from "./constants";
+import { BAR_SIZE, ROW_HEIGHT } from "./constants";
 
 export * from "./constants";
 
@@ -42,6 +43,21 @@ function toRow(group: TopicGroup): Row | null {
   return row;
 }
 
+/**
+ * The colour a rate earns, from the same bands the weak-areas tab uses.
+ *
+ * Every bar used to be green whether the subject sat at 88% or at 41%, which
+ * spends a verdict colour on decoration and tells the reader nothing the number
+ * beside it does not. Sharing the thresholds means the two views cannot
+ * disagree about what counts as fine.
+ */
+function bandFill(rate: number): string {
+  const band = [...BANDS].reverse().find((entry) => rate >= entry.min) ?? BANDS[0];
+  if (band.id === "good") return CHART_COLOR.correct;
+  if (band.id === "fair") return CHART_COLOR.warn;
+  return CHART_COLOR.wrong;
+}
+
 function weakestFirst(groups: TopicGroup[]): Row[] {
   const rows = R.filter(R.isNotNil, groups.map(toRow));
   return R.sortBy(R.prop("accuracy"), rows);
@@ -62,7 +78,7 @@ export function AccuracyBars({ groups, emptyMessage }: AccuracyBarsProps) {
             width={150}
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 12, fill: "#57534e" }}
+            tick={{ fontSize: 12, fill: CHART_COLOR.axis }}
           />
           <Bar
             dataKey="accuracy"
@@ -74,14 +90,11 @@ export function AccuracyBars({ groups, emptyMessage }: AccuracyBarsProps) {
               formatter: (value: unknown) =>
                 formatPercent(typeof value === "number" ? value : null),
               fontSize: 11,
-              fill: "#78716c",
+              fill: CHART_COLOR.label,
             }}
           >
             {rows.map((row) => (
-              <Cell
-                key={row.key}
-                fill={row.accuracy < WEAK_THRESHOLD ? CHART_COLOR.wrong : CHART_COLOR.correct}
-              />
+              <Cell key={row.key} fill={bandFill(row.accuracy)} />
             ))}
           </Bar>
         </BarChart>

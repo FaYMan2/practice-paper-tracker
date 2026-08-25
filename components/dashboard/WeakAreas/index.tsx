@@ -180,7 +180,7 @@ function RankedRow({
       <span className="w-32 shrink-0 text-right text-[11px] text-faint">
         {firstTryText(firstTry, area.answered)}
       </span>
-      <Badge tone="neutral" title="The optimistic end of the confidence interval — what the ranking is on">
+      <Badge tone="neutral" title="The optimistic end of the confidence interval, which is what the ranking is on">
         {atBestText(area.firstTry.high)}
       </Badge>
     </li>

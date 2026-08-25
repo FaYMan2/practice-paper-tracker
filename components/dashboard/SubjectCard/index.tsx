@@ -9,11 +9,22 @@
  */
 
 import { ChevronRight } from "lucide-react";
-import { accuracy, coverage, statusCounts } from "../../../utils/dashboard";
+import { accuracy, averageTimeMs, coverage } from "../../../utils/dashboard";
 import type { TopicGroup } from "../../../utils/dashboard";
-import { NO_VALUE, formatDate, formatPercent, pluralize } from "../../../utils/format";
-import { NOT_STARTED, PARTIAL_INDEX_NOTE, UNKNOWN_TOTAL } from "../constants";
-import { Legend } from "../Legend";
+import {
+  NO_VALUE,
+  formatDate,
+  formatDuration,
+  formatPercent,
+  pluralize,
+} from "../../../utils/format";
+import type { TopicSummary } from "../../../types";
+import {
+  AVERAGED_OVER_TITLE,
+  NOT_STARTED,
+  PARTIAL_INDEX_TITLE,
+  UNKNOWN_TOTAL,
+} from "../constants";
 import { StatusDonut } from "../StatusDonut";
 import { Stat } from "../Stat";
 import { cn } from "../ui";
@@ -30,9 +41,22 @@ function attemptedText(group: TopicGroup): string {
   return `${prefix}${solvedRows} / ${totalFromSite ?? UNKNOWN_TOTAL}`;
 }
 
+/** How often the subject's questions went right first time. */
+function firstTryRate(children: TopicSummary[], solved: number): number | null {
+  if (solved === 0) return null;
+  const correct = children.reduce(
+    (total, child) => total + (child.firstTryCorrectRows ?? child.correctRows),
+    0,
+  );
+  return correct / solved;
+}
+
 export function SubjectCard({ group, onOpen }: SubjectCardProps) {
   const { stats } = group;
   const touched = stats.solvedRows > 0;
+  const coverageTitle = stats.fullyIndexed
+    ? undefined
+    : PARTIAL_INDEX_TITLE(stats.indexedRows, stats.totalFromSite ?? UNKNOWN_TOTAL);
 
   return (
     <button
@@ -41,7 +65,7 @@ export function SubjectCard({ group, onOpen }: SubjectCardProps) {
       className={cn(
         "group flex flex-col gap-4 rounded-card border border-line bg-surface p-5 text-left",
         "transition-[border-color,box-shadow,transform] duration-150",
-        "hover:-translate-y-px hover:border-accent/40 hover:shadow-[0_2px_4px_rgba(28,25,23,0.04),0_12px_28px_rgba(28,25,23,0.07)]",
+        "hover:-translate-y-px hover:border-accent/40 hover:shadow-pop",
         // Started subjects carry a hairline of accent, so the grid reads at a
         // glance as "these are the ones in play".
         touched && "border-l-2 border-l-accent",
@@ -53,10 +77,7 @@ export function SubjectCard({ group, onOpen }: SubjectCardProps) {
             <span className="truncate">{group.label}</span>
             <ChevronRight className="size-4 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
           </h3>
-          <span className="text-xs text-muted">
-            {pluralize(group.children.length, "topic")}
-            {stats.fullyIndexed ? "" : ` · ${PARTIAL_INDEX_NOTE}`}
-          </span>
+          <span className="text-xs text-muted">{pluralize(group.children.length, "topic")}</span>
         </div>
 
         <StatusDonut
@@ -67,22 +88,44 @@ export function SubjectCard({ group, onOpen }: SubjectCardProps) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-x-7 gap-y-3">
+      {/*
+        Three figures, not nine. The card used to carry the attempted count, the
+        accuracy, a three-part legend of correct / wrong / not attempted, the
+        marks and the date, which is the same set the summary above it already
+        shows, at a smaller size. What is left is what decides whether to open
+        this subject next.
+      */}
+      <div className="flex flex-wrap gap-x-7 gap-y-3" title={coverageTitle}>
         <Stat value={attemptedText(group)} label="attempted" />
         <Stat
           value={touched ? formatPercent(accuracy(stats)) : NO_VALUE}
           label="accuracy"
           tone={touched ? "accent" : undefined}
         />
+        <Stat
+          value={formatPercent(firstTryRate(group.children, stats.solvedRows))}
+          label="first try"
+          title="How often these went right the first time, which is what an exam asks for"
+        />
       </div>
 
-      <Legend counts={statusCounts(stats)} />
-
-      <div className="flex items-center justify-between border-t border-line pt-3 text-xs text-muted">
+      <div className="flex items-center justify-between gap-2 border-t border-line pt-3 text-xs text-muted">
         <span className="num">
           {stats.marksEarned}
           {stats.totalMarksFromSite === null ? "" : ` / ${stats.totalMarksFromSite}`} marks
         </span>
+
+        {/*
+          The pace, where there is any. Sits in the footer rather than beside
+          the headline figures because it rests on a handful of questions while
+          they rest on all of them, and equal weight would overstate it.
+        */}
+        {stats.timedQuestions > 0 ? (
+          <span className="num" title={AVERAGED_OVER_TITLE(stats.timedQuestions)}>
+            {formatDuration(averageTimeMs(stats))} avg
+          </span>
+        ) : null}
+
         <span>{touched ? (formatDate(stats.lastActivityAt) ?? "") : NOT_STARTED}</span>
       </div>
     </button>
