@@ -3,6 +3,7 @@ import {
   QuestionFilter,
   SubjectView,
   accuracy,
+  averageTimeMs,
   buildView,
   coverage,
   filterQuestions,
@@ -13,6 +14,7 @@ import {
   unattemptedRows,
   visibleGroups,
 } from "../utils/dashboard";
+import type { TopicSummary } from "../types";
 import { CHILD, SUBJECT, question, summary, viewOf } from "./factories";
 
 describe("groupTopics", () => {
@@ -153,5 +155,43 @@ describe("which subjects the grid shows", () => {
     const opened = summary("discrete-mathematics", { indexedRows: 5, totalFromSite: 465 });
 
     expect(visibleGroups(viewOf([opened]).groups, SubjectView.Started)).toHaveLength(1);
+  });
+});
+
+describe("how long questions take", () => {
+  function timed(slug: string, questions: number, totalMs: number): TopicSummary {
+    return summary(slug, {
+      parentSlug: "computer-organization",
+      solvedRows: 10,
+      correctRows: 8,
+      wrongRows: 2,
+      timedQuestions: questions,
+      timedTotalMs: totalMs,
+    });
+  }
+
+  it("divides the total by the count rather than averaging averages", () => {
+    // Six timings totalling eighteen minutes is three minutes each. Taking the
+    // mean of two topic averages would weight a two-question topic as heavily
+    // as a twenty-question one, which is why the summary carries a sum.
+    const view = viewOf([
+      summary("computer-organization", {
+        title: "Computer Organization",
+        solvedRows: 20,
+        correctRows: 16,
+        timedQuestions: 6,
+        timedTotalMs: 1_080_000,
+      }),
+      timed("cache-memory", 4, 480_000),
+    ]);
+
+    expect(averageTimeMs(view.groups[0]!.stats)).toBe(180_000);
+  });
+
+  it("reports no average where nothing has been timed", () => {
+    // Null, not zero. Zero would read as an instant answer.
+    const view = viewOf([summary("stack", { solvedRows: 5, correctRows: 5 })]);
+
+    expect(averageTimeMs(view.overall)).toBeNull();
   });
 });

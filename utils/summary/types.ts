@@ -32,6 +32,8 @@ export interface SummaryInputs {
    * richer record: they have different domains.
    */
   firstVerdictByGoId: Map<string, Verdict | null>;
+  /** How long each question's last timed attempt took, where one was timed. */
+  durationByGoId: Map<string, number | null>;
   lastActivityAt: number | null;
 }
 

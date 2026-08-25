@@ -19,6 +19,7 @@ function inputs(overrides: Partial<SummaryInputs> = {}): SummaryInputs {
     rows: [],
     statusByGoId: new Map<string, QuestionStatus>(),
     firstVerdictByGoId: new Map<string, Verdict | null>(),
+    durationByGoId: new Map<string, number | null>(),
     lastActivityAt: null,
   };
   return { ...base, ...overrides };
@@ -96,6 +97,47 @@ describe("computeTopicSummary", () => {
     // numerator either — a stale first verdict must not resurrect one.
     expect(summary.solvedRows).toBe(0);
     expect(summary.firstTryCorrectRows).toBe(0);
+  });
+
+  it("averages timings per question, not per row", () => {
+    // GateOverflow 49487 fills three rows of this topic and took as long as it
+    // took once. Counting its timing three times would weight a duplicated
+    // question three times in the average.
+    const summary = computeTopicSummary(
+      inputs({
+        rows: rows([1, "49487"], [2, "49487"], [3, "1035"]),
+        statusByGoId: new Map<string, QuestionStatus>([
+          ["49487", "correct"],
+          ["1035", "correct"],
+        ]),
+        durationByGoId: new Map<string, number | null>([
+          ["49487", 60_000],
+          ["1035", 120_000],
+        ]),
+      }),
+    );
+
+    expect(summary.timedQuestions).toBe(2);
+    expect(summary.timedTotalMs).toBe(180_000);
+  });
+
+  it("leaves untimed questions out rather than counting them as instant", () => {
+    const summary = computeTopicSummary(
+      inputs({
+        rows: rows([1, "a"], [2, "b"]),
+        statusByGoId: new Map<string, QuestionStatus>([
+          ["a", "correct"],
+          ["b", "correct"],
+        ]),
+        durationByGoId: new Map<string, number | null>([
+          ["a", 90_000],
+          ["b", null],
+        ]),
+      }),
+    );
+
+    expect(summary.timedQuestions).toBe(1);
+    expect(summary.timedTotalMs).toBe(90_000);
   });
 
   it("resumes at the lowest-ordinal unattempted row regardless of input order", () => {

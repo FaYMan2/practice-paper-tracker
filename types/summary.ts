@@ -25,6 +25,20 @@ export interface TopicSummary {
    * to eventually but rarely first time are what costs marks in an exam hall.
    */
   firstTryCorrectRows: number;
+  /**
+   * Distinct questions here that have ever been timed, and the total of those
+   * timings.
+   *
+   * Counted per *question* rather than per row, unlike everything around it:
+   * one question can sit in three rows of a topic, and it took as long as it
+   * took once. Rows are the right unit for "how much of this topic is done"
+   * and the wrong one for "how long these take".
+   *
+   * A sum rather than a stored average, because a subject's figure has to be
+   * the total of its topics' and averages do not add up.
+   */
+  timedQuestions: number;
+  timedTotalMs: number;
   /** Distinct solved questions; the honest floor when indexing is partial. */
   distinctSolved: number;
   totalFromSite: number | null;

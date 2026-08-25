@@ -11,6 +11,8 @@ export function statsOf(summary: TopicSummary): TopicStats {
     wrongRows: summary.wrongRows,
     indexedRows: summary.indexedRows,
     marksEarned: summary.marksEarned,
+    timedQuestions: summary.timedQuestions ?? 0,
+    timedTotalMs: summary.timedTotalMs ?? 0,
     totalFromSite: summary.totalFromSite,
     totalMarksFromSite: summary.totalMarksFromSite,
     fullyIndexed: summary.fullyIndexed,
@@ -25,6 +27,8 @@ export const EMPTY_STATS: TopicStats = {
   wrongRows: 0,
   indexedRows: 0,
   marksEarned: 0,
+  timedQuestions: 0,
+  timedTotalMs: 0,
   totalFromSite: null,
   totalMarksFromSite: null,
   fullyIndexed: false,
@@ -70,6 +74,8 @@ export function sumStats(parts: TopicStats[]): TopicStats {
     wrongRows: R.sum(R.pluck("wrongRows", parts)),
     indexedRows: R.sum(R.pluck("indexedRows", parts)),
     marksEarned: R.sum(R.pluck("marksEarned", parts)),
+    timedQuestions: R.sum(R.pluck("timedQuestions", parts)),
+    timedTotalMs: R.sum(R.pluck("timedTotalMs", parts)),
     totalFromSite: sumNullable(parts.map(countableTotal)),
     totalMarksFromSite: sumNullable(parts.map((part) => part.totalMarksFromSite)),
     fullyIndexed: parts.every((part) => part.fullyIndexed),
@@ -92,6 +98,19 @@ export function unattemptedRows(stats: TopicStats): number {
 /** Share of attempted questions answered correctly. Null with nothing attempted. */
 export function accuracy(stats: TopicStats): number | null {
   return stats.solvedRows === 0 ? null : stats.correctRows / stats.solvedRows;
+}
+
+/**
+ * How long a question here takes, on average, or null if none were timed.
+ *
+ * The mean rather than the median, for one structural reason: a subject's
+ * figure is the total of its topics' and medians cannot be added up. The clock
+ * already refuses anything over half an hour, which is what a median would
+ * otherwise be protecting against.
+ */
+export function averageTimeMs(stats: TopicStats): number | null {
+  const timed = stats.timedQuestions ?? 0;
+  return timed === 0 ? null : (stats.timedTotalMs ?? 0) / timed;
 }
 
 /** The three-way split a chart or a bar draws. */

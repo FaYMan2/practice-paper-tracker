@@ -18,6 +18,8 @@ function summary(slug: string, overrides: Partial<TopicSummary> = {}): TopicSumm
     correctRows: 9,
     wrongRows: 3,
     firstTryCorrectRows: 0,
+    timedQuestions: 0,
+    timedTotalMs: 0,
     distinctSolved: 12,
     totalFromSite: 34,
     indexedRows: 34,

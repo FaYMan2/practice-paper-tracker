@@ -13,6 +13,8 @@ export function summary(slug: string, overrides: Partial<TopicSummary> = {}): To
     correctRows: 0,
     wrongRows: 0,
     firstTryCorrectRows: 0,
+    timedQuestions: 0,
+    timedTotalMs: 0,
     distinctSolved: 0,
     totalFromSite: null,
     indexedRows: 0,
