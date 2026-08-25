@@ -30,15 +30,26 @@ const STATE_CLASS: Record<ClockState, string> = {
   [ClockState.Abandoned]: UI_CLASS.timerAbandoned,
 };
 
-function label(state: ClockState, elapsedMs: number): string {
-  if (state === ClockState.Idle) return TIMER_GLYPH;
-  if (state === ClockState.Abandoned) return `${TIMER_GLYPH} ${ABANDONED_TEXT}`;
-  return `${TIMER_GLYPH} ${formatDuration(elapsedMs)}`;
+/** The reading beside the glyph, or nothing at all when the clock is idle. */
+function reading(state: ClockState, elapsedMs: number): string {
+  if (state === ClockState.Idle) return "";
+  if (state === ClockState.Abandoned) return ABANDONED_TEXT;
+  return formatDuration(elapsedMs) ?? "";
 }
 
 export function Timer(doc: Document, goId: string, clocks: QuestionClocks): HTMLElement {
   const button = el(doc, "button", `${CLS.ours} ${UI_CLASS.timer}`);
   button.setAttribute("type", "button");
+
+  /*
+   * Glyph and reading are separate elements so they can be sized separately.
+   * As one string they shared a font size, which left the stopwatch smaller
+   * than the star beside it and easy to miss entirely: the digits want to be
+   * small, the thing you have to aim at does not.
+   */
+  const glyph = el(doc, "span", UI_CLASS.timerGlyph, TIMER_GLYPH);
+  const value = el(doc, "span", UI_CLASS.timerValue);
+  button.append(glyph, value);
 
   let tick: ReturnType<typeof setInterval> | null = null;
 
@@ -64,7 +75,7 @@ export function Timer(doc: Document, goId: string, clocks: QuestionClocks): HTML
     const modifier = STATE_CLASS[state];
 
     button.className = `${CLS.ours} ${UI_CLASS.timer}${modifier ? ` ${modifier}` : ""}`;
-    button.textContent = label(state, elapsedMs);
+    value.textContent = reading(state, elapsedMs);
     button.title = TIMER_TITLE[state];
     button.setAttribute("aria-pressed", String(state === ClockState.Running));
 

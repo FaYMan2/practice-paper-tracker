@@ -6,6 +6,6 @@ export const STAR_GLYPH = {
 } as const;
 
 export const STAR_TITLE = {
-  on: "Starred — click to unstar",
+  on: "Starred. Click to unstar",
   off: "Star this question to come back to it",
 } as const;

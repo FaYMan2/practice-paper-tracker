@@ -7,17 +7,17 @@
   gap: 6px 14px;
   margin: 0 0 14px;
   padding: 10px 14px;
-  border: 1px solid #e2e8f0;
-  border-left: 3px solid #2f6d1a;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
-  font: 13px/1.5 system-ui, sans-serif;
+  border: 1px solid var(--pptr-line);
+  border-left: 3px solid var(--pptr-accent);
+  border-radius: var(--pptr-radius-control);
+  background: var(--pptr-raised);
+  color: var(--pptr-muted);
+  font: 13px/1.5 var(--pptr-font);
 }
 
 .pptr.pptr-strip .pptr-strip-label {
   font-weight: 700;
-  color: #2f6d1a;
+  color: var(--pptr-accent);
   letter-spacing: 0.02em;
 }
 
@@ -26,12 +26,14 @@
 }
 
 .pptr.pptr-strip .pptr-strip-item b {
-  color: #0f172a;
+  color: var(--pptr-ink);
   font-weight: 700;
+  /* Counts sit beside each other; same-width digits keep them comparable. */
+  font-variant-numeric: tabular-nums;
 }
 
 .pptr.pptr-strip .pptr-strip-note {
-  color: #64748b;
+  color: var(--pptr-faint);
   font-style: italic;
 }
 

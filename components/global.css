@@ -1,16 +1,79 @@
 /*
- * Rules that are not owned by a single component.
+ * Rules that are not owned by a single component, and the palette all of them
+ * paint from.
  *
  * Selectors double up the `pptr` namespace class (`.pptr.pptr-x`) throughout
  * the UI. That is not stylistic: this markup is injected into a WordPress theme
  * whose own rules target the same elements, and a single class would lose to
  * something as ordinary as `.entry-content a`.
+ *
+ * The tokens below are the dashboard's light palette, to the value. The two
+ * halves of this extension were built months apart and drifted into separate
+ * languages: forest green and cool slate out here, terracotta and warm stone in
+ * the dashboard. Same product, two brands, and the seam showed the moment you
+ * had both open. There is no dark variant, deliberately, because this UI is a
+ * guest on someone else's light page and inverting inside it would look broken.
  */
+
+.pptr {
+  /* Surfaces and text. */
+  --pptr-surface: oklch(1 0 0);
+  --pptr-raised: oklch(0.985 0.003 75);
+  --pptr-line: oklch(0.922 0.004 75);
+  --pptr-ink: oklch(0.24 0.008 60);
+  --pptr-muted: oklch(0.55 0.012 60);
+  --pptr-faint: oklch(0.66 0.012 60);
+
+  /* The one brand colour, and what stays readable on top of it. */
+  --pptr-accent: oklch(0.585 0.128 42);
+  --pptr-accent-strong: oklch(0.5 0.14 42);
+  --pptr-accent-soft: oklch(0.965 0.018 42);
+  --pptr-on-solid: oklch(1 0 0);
+
+  /* Verdicts. Never used for anything that is not right, wrong, or overdue. */
+  --pptr-correct: oklch(0.42 0.11 150);
+  --pptr-correct-soft: oklch(0.955 0.03 150);
+  --pptr-wrong: oklch(0.5 0.17 27);
+  --pptr-wrong-soft: oklch(0.96 0.025 27);
+  --pptr-warn: oklch(0.52 0.12 65);
+  --pptr-warn-soft: oklch(0.965 0.035 75);
+
+  /* Containers are soft, controls are square-ish, only status is a pill. */
+  --pptr-radius-control: 8px;
+  --pptr-radius-pill: 999px;
+
+  --pptr-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* One focus ring for the injected UI, since the host theme has none worth using. */
+.pptr:focus-visible {
+  outline: 2px solid var(--pptr-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+button.pptr {
+  /* No 300ms double-tap delay, and no grey flash over our own pressed state. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.pptr:active {
+  transform: translateY(0.5px);
+}
 
 /* Marks where a resume link landed, then fades out. */
 .pptr-focus {
-  outline: 3px solid #f59e0b;
+  outline: 3px solid var(--pptr-accent);
   outline-offset: 6px;
   border-radius: 3px;
   transition: outline-color 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pptr,
+  .pptr-focus {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

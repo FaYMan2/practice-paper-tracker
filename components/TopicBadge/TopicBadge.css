@@ -5,13 +5,14 @@
   align-items: center;
   gap: 6px;
   margin-left: 8px;
-  font: 600 11px/1.6 system-ui, sans-serif;
-  color: #475569;
+  font: 600 11px/1.6 var(--pptr-font);
+  color: var(--pptr-muted);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* Tighter pills here — this page lists around 100 topics. */
+/* Tighter here: this page lists around a hundred topics. */
 .pptr.pptr-topic-badge .pptr-resume {
-  padding: 0 7px;
+  padding: 1px 7px;
   font-size: 11px;
 }

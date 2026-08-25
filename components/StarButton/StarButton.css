@@ -5,17 +5,18 @@
   padding: 0 4px;
   border: none;
   background: none;
-  color: #94a3b8;
+  color: var(--pptr-faint);
   font-size: 15px;
   line-height: 1;
   vertical-align: middle;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
 .pptr.pptr-star:hover {
-  color: #b45309;
+  color: var(--pptr-accent);
 }
 
 .pptr.pptr-star.pptr-star-on {
-  color: #d97706;
+  color: var(--pptr-accent);
 }

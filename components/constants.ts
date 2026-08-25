@@ -27,6 +27,8 @@ export const UI_CLASS = {
   star: "pptr-star",
   starOn: "pptr-star-on",
   timer: "pptr-timer",
+  timerGlyph: "pptr-timer-glyph",
+  timerValue: "pptr-timer-value",
   timerRunning: "pptr-timer-running",
   timerStopped: "pptr-timer-stopped",
   timerAbandoned: "pptr-timer-abandoned",
