@@ -28,6 +28,9 @@ import { CHILD, SUBJECT, question, summary, viewOf } from "./factories";
 
 beforeEach(() => {
   fakeBrowser.reset();
+  // The dashboard reads its tab from the fragment now, and a fragment set by
+  // one test would otherwise open the next one on somebody else's tab.
+  window.location.hash = "";
 });
 
 const DETAIL: TopicDetail = {
@@ -115,10 +118,13 @@ describe("TopicTable", () => {
     expect(screen.getByRole("button", { name: "Stack" })).toBeTruthy();
   });
 
-  it("flags a topic whose questions have not all been seen", () => {
+  it("says when a count is a floor rather than a total", () => {
+    // The "≥" carries it in the number; the sentence lives in the tooltip
+    // rather than in warning amber on every second row.
     renderTable();
 
-    expect(screen.getAllByText("partially indexed")).toHaveLength(1);
+    expect(screen.getByText("≥12 / 34")).toBeTruthy();
+    expect(screen.getByTitle(/20 of 34 questions have been seen/)).toBeTruthy();
   });
 
   it("offers both ways back into a topic that has been worked on", () => {
@@ -764,6 +770,28 @@ describe("App", () => {
 
     expect(screen.getByText(/Nothing scheduled for this day/)).toBeTruthy();
     expect(dayList().queryByText("Q7")).toBeNull();
+  });
+
+  it("opens on the tab named in the address bar", async () => {
+    // Which section you are in is state, and state belongs in the URL: a reload
+    // used to throw you back to Progress whatever you were reading.
+    fakeWorker([SUBJECT, CHILD], { review: { due: [], upcoming: [], tracked: 4, unplaced: 0 } });
+    window.location.hash = "review";
+    render(<App />);
+
+    // Asserted on which tab is *selected*, not on the panel's text: an inactive
+    // panel is still in the document, so matching its copy would pass whether
+    // or not the fragment was read.
+    const selected = await screen.findByRole("tab", { selected: true });
+    expect(selected.textContent).toContain("Review");
+  });
+
+  it("puts the tab it was switched to into the address bar", async () => {
+    fakeWorker([SUBJECT, CHILD]);
+    render(<App />);
+    await openTab("Backups");
+
+    expect(window.location.hash).toBe("#backups");
   });
 
   it("opens a subject, and asks the background for the topic's questions", async () => {

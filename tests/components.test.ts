@@ -40,6 +40,8 @@ function summary(overrides: Partial<TopicSummary> = {}): TopicSummary {
     correctRows: 9,
     wrongRows: 3,
     firstTryCorrectRows: 0,
+    timedQuestions: 0,
+    timedTotalMs: 0,
     distinctSolved: 12,
     totalFromSite: 465,
     indexedRows: 465,

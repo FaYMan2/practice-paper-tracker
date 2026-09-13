@@ -99,7 +99,7 @@ function Day({
       <span
         className={cn(
           "num grid size-5 place-items-center justify-self-start rounded-full text-[11px]",
-          day.isToday ? "bg-accent font-semibold text-white" : "font-medium text-muted",
+          day.isToday ? "bg-accent font-semibold text-on-solid" : "font-medium text-muted",
         )}
       >
         {day.dayOfMonth}

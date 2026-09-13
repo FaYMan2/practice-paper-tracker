@@ -19,6 +19,8 @@ function topic(slug: string, answered: number, firstTryCorrect: number): TopicSu
     correctRows: firstTryCorrect,
     wrongRows: answered - firstTryCorrect,
     firstTryCorrectRows: firstTryCorrect,
+    timedQuestions: 0,
+    timedTotalMs: 0,
     distinctSolved: answered,
     totalFromSite: 30,
     indexedRows: 30,

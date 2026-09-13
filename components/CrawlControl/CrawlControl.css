@@ -1,27 +1,32 @@
 /* The control that indexes the rest of a topic. */
 
 .pptr.pptr-crawl {
-  padding: 2px 10px;
-  border: 1px solid #2f6d1a;
-  border-radius: 999px;
+  padding: 3px 10px;
+  border: 1px solid var(--pptr-line);
+  border-radius: var(--pptr-radius-control);
   background: transparent;
-  color: #2f6d1a;
-  font: 600 12px/1.6 system-ui, sans-serif;
+  color: var(--pptr-accent);
+  font: 600 12px/1.6 var(--pptr-font);
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .pptr.pptr-crawl:hover {
-  background: #eef6ea;
+  background: var(--pptr-accent-soft);
+  border-color: var(--pptr-accent);
 }
 
 .pptr.pptr-crawl.pptr-crawl-cancel {
-  border-color: #b91c1c;
-  color: #b91c1c;
+  border-color: var(--pptr-line);
+  color: var(--pptr-wrong);
 }
 
 .pptr.pptr-crawl.pptr-crawl-cancel:hover {
-  background: #fef2f2;
+  background: var(--pptr-wrong-soft);
+  border-color: var(--pptr-wrong);
 }
 
 .pptr-crawl-status {
@@ -31,7 +36,7 @@
 }
 
 .pptr-crawl-note {
-  color: #64748b;
+  color: var(--pptr-faint);
   font-size: 12px;
   font-style: italic;
 }

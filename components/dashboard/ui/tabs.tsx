@@ -39,5 +39,18 @@ export function Tab({ className, ...props }: ComponentProps<typeof TabsPrimitive
 }
 
 export function TabPanel({ className, ...props }: ComponentProps<typeof TabsPrimitive.Content>) {
-  return <TabsPrimitive.Content className={cn("mt-5 outline-none", className)} {...props} />;
+  /*
+   * The panel is focusable so a keyboard user lands in the section they just
+   * opened. `outline-none` alone would take the ring away and give nothing
+   * back, so the ring is re-stated for the case that actually needs it.
+   */
+  return (
+    <TabsPrimitive.Content
+      className={cn(
+        "mt-5 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent",
+        className,
+      )}
+      {...props}
+    />
+  );
 }

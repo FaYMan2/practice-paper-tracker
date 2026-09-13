@@ -8,8 +8,8 @@ import type { BadgeTone, SegmentedOption } from "../ui";
 export const REVIEW_TITLE = "Due for review";
 
 export const REVIEW_NOTE =
-  "Questions you've got wrong, spaced out by how well they've gone since. " +
-  "Solve one on the site and it reschedules itself — there's nothing to mark here.";
+  "Questions you’ve got wrong, spaced out by how well they've gone since. " +
+  "Solve one on the site and it reschedules itself. There is nothing to mark here.";
 
 export const GROUPING_OPTIONS: SegmentedOption<ReviewGrouping>[] = [
   { value: ReviewGrouping.Day, label: "By day", icon: createElement(CalendarDays) },
@@ -37,8 +37,8 @@ export const NOTHING_TRACKED_TITLE = "Nothing to review yet";
 
 export const NOTHING_TRACKED_BODY =
   "Questions you answer incorrectly appear here, due again the next day, then " +
-  "at widening intervals until they stick. Nothing you've only ever got right " +
-  "is scheduled — that would bury the ones that matter.";
+  "at widening intervals until they stick. Nothing you’ve only ever got right " +
+  "is scheduled. That would bury the ones that matter.";
 
 export const ALL_CAUGHT_UP_TITLE = "Nothing due right now";
 

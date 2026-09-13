@@ -1,38 +1,61 @@
 /* The stopwatch beside a question. */
 
 .pptr.pptr-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* A real target, not a glyph you have to aim at. */
+  min-height: 24px;
   margin-left: 6px;
-  padding: 0 5px;
+  padding: 0 7px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--pptr-radius-pill);
   background: none;
-  color: #94a3b8;
-  font-size: 12px;
+  color: var(--pptr-muted);
+  font: 12px/1.6 var(--pptr-font);
   font-variant-numeric: tabular-nums;
-  line-height: 1.6;
   vertical-align: middle;
   cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+/*
+ * The stopwatch matches the star beside it.
+ *
+ * Sized apart from the digits: as one font size the glyph came out at 12px
+ * against the star's 15px, which read as a stray mark rather than a control.
+ */
+.pptr.pptr-timer .pptr-timer-glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.pptr.pptr-timer .pptr-timer-value:empty {
+  display: none;
 }
 
 .pptr.pptr-timer:hover {
-  color: #b45309;
+  background: var(--pptr-accent-soft);
+  color: var(--pptr-accent);
 }
 
 /* Running is the one state worth catching out of the corner of an eye. */
 .pptr.pptr-timer.pptr-timer-running {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--pptr-warn-soft);
+  color: var(--pptr-warn);
   font-weight: 600;
 }
 
 .pptr.pptr-timer.pptr-timer-stopped {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--pptr-correct-soft);
+  color: var(--pptr-correct);
   font-weight: 600;
   cursor: default;
 }
 
 .pptr.pptr-timer.pptr-timer-abandoned {
-  color: #94a3b8;
+  color: var(--pptr-faint);
   cursor: default;
 }

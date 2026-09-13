@@ -539,6 +539,36 @@ describe("how long a question took", () => {
     expect(await driftedProjections(db)).toEqual([]);
   });
 
+  it("rolls a topic's timings up into the subject above it", async () => {
+    // A subject's page serves every question its topics serve, so a stopwatch
+    // started on a topic page has to reach the subject's average too.
+    await recordHierarchy([
+      entry("computer-organization", null, "Computer Organization"),
+      entry("pipeline-processor", "computer-organization", "Pipeline Processor"),
+    ]);
+    await observePage({
+      topicSlug: "pipeline-processor",
+      title: "Pipeline Processor",
+      pageNo: 1,
+      totalFromSite: 60,
+      totalMarksFromSite: 88,
+      rows: [
+        { ordinal: 1, goId: "523099", examSlug: "gate-cse-2026-set-2", type: "NAT", marks: 2, relatedSlugs: [] },
+      ],
+    });
+    await recordAttempt(
+      timedAttempt({
+        goId: "523099",
+        eventId: "523099:load-1",
+        topicSlug: "pipeline-processor",
+        durationMs: 150_000,
+      }),
+    );
+
+    const subject = await buildTopicSummary("computer-organization", db);
+    expect(subject).toMatchObject({ timedQuestions: 1, timedTotalMs: 150_000 });
+  });
+
   it("carries the timing through to the dashboard's question list", async () => {
     await observePage({
       topicSlug: "stack",

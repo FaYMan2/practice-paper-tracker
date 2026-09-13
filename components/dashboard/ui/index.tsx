@@ -17,14 +17,24 @@ export * from "./cn";
 
 /* ------------------------------------------------------------------ Button */
 
+/*
+ * Controls are rectangles with an 8px radius, not pills.
+ *
+ * The old pill buttons sat beside 14px cards and square table cells, which is
+ * three shape systems arguing. One rule now: containers soft, controls
+ * square-ish, and the pill reserved for badges, where the shape means "this is
+ * a status, not something you can press".
+ */
 const button = cva(
-  "inline-flex items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap transition-colors disabled:opacity-50 disabled:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 rounded-control font-semibold whitespace-nowrap transition-colors disabled:opacity-50 disabled:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        solid: "bg-accent text-white hover:bg-accent-strong",
+        // `on-solid` rather than white: the accent lightens in dark mode, and
+        // white text on a light terracotta is unreadable.
+        solid: "bg-accent text-on-solid hover:bg-accent-strong",
         outline: "border border-line bg-raised text-ink hover:border-accent hover:text-accent",
-        accent: "border border-accent text-accent hover:bg-accent hover:text-white",
+        accent: "border border-accent text-accent hover:bg-accent hover:text-on-solid",
         ghost: "text-muted hover:bg-raised hover:text-ink",
       },
       size: {
@@ -54,7 +64,7 @@ export function Card({ className, ...props }: ComponentProps<"section">) {
   return (
     <section
       className={cn(
-        "rounded-card border border-line bg-surface shadow-[0_1px_2px_rgba(28,25,23,0.04)]",
+        "rounded-card border border-line bg-surface shadow-card",
         className,
       )}
       {...props}
@@ -85,7 +95,7 @@ const badge = cva(
   {
     variants: {
       tone: {
-        accent: "bg-accent text-white",
+        accent: "bg-accent text-on-solid",
         neutral: "bg-line text-muted",
         correct: "bg-correct-soft text-correct",
         wrong: "bg-wrong-soft text-wrong",

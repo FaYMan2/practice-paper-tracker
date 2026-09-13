@@ -7,11 +7,28 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { QuestionFilter, accuracy, coverage, statusCounts } from "../../../utils/dashboard";
+import {
+  QuestionFilter,
+  accuracy,
+  averageTimeMs,
+  coverage,
+  statusCounts,
+} from "../../../utils/dashboard";
 import type { TopicGroup } from "../../../utils/dashboard";
 import { useTopicDetail } from "../../../services/dashboard";
-import { NO_VALUE, formatDate, formatPercent, pluralize } from "../../../utils/format";
-import { CLOSE_LABEL, UNKNOWN_TOTAL } from "../constants";
+import {
+  NO_VALUE,
+  formatDate,
+  formatDuration,
+  formatPercent,
+  pluralize,
+} from "../../../utils/format";
+import {
+  AVERAGED_OVER_TITLE,
+  CLOSE_LABEL,
+  TIMED_STAT_LABEL,
+  UNKNOWN_TOTAL,
+} from "../constants";
 import { Legend } from "../Legend";
 import { Stat, StatRow } from "../Stat";
 import { StatusDonut } from "../StatusDonut";
@@ -54,8 +71,10 @@ export function SubjectDialog({ group, titles, onClose }: SubjectDialogProps) {
       ref={ref}
       className={cn(
         "m-auto max-h-[86vh] w-[min(1080px,94vw)] rounded-card border-0 bg-surface p-0 text-ink",
-        "shadow-[0_1px_2px_rgba(28,25,23,0.04),0_24px_64px_rgba(28,25,23,0.18)]",
-        "backdrop:bg-[rgba(28,25,23,0.42)]",
+        "shadow-pop overscroll-contain",
+        // The scrim is a token too, so it deepens with the page rather than
+        // staying a light-mode wash over a dark dialog.
+        "backdrop:bg-scrim backdrop:backdrop-blur-[2px]",
       )}
       aria-label={group.label}
       onClose={onClose}
@@ -95,6 +114,15 @@ export function SubjectDialog({ group, titles, onClose }: SubjectDialogProps) {
               <Stat value={`${stats.correctRows}`} label="correct" tone="correct" />
               <Stat value={`${stats.wrongRows}`} label="wrong" tone="wrong" />
               <Stat value={formatPercent(accuracy(stats))} label="accuracy" tone="accent" />
+              {/* Only where the stopwatch has been used, and labelled with how
+                  many questions the figure rests on. */}
+              {stats.timedQuestions > 0 ? (
+                <Stat
+                  value={formatDuration(averageTimeMs(stats)) ?? NO_VALUE}
+                  label={TIMED_STAT_LABEL(stats.timedQuestions)}
+                  title={AVERAGED_OVER_TITLE(stats.timedQuestions)}
+                />
+              ) : null}
               <Stat value={formatDate(stats.lastActivityAt) ?? NO_VALUE} label="last solved" />
             </StatRow>
             <Legend counts={statusCounts(stats)} />

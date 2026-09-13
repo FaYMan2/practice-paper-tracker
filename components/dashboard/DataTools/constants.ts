@@ -15,7 +15,7 @@ export const REBUILD_LABEL = "Rebuild the figures";
 export const EXPORT_HINT = "Every answer, question, row and topic, as one file.";
 
 export const IMPORT_HINT =
-  "Merged into what's here — answers are matched on their event id, so importing " +
+  "Merged into what’s here. Answers are matched on their event id, so importing " +
   "the same file twice changes nothing and nothing is ever removed.";
 
 export const REBUILD_HINT =

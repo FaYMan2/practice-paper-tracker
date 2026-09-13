@@ -84,7 +84,7 @@ function Question({
   const timed = formatDuration(row.lastDurationMs);
 
   return (
-    <li className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-t border-line px-4 py-2 first:border-t-0">
+    <li className="deferred-rows flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-t border-line px-4 py-2 first:border-t-0">
       <a
         className="num font-semibold text-accent no-underline hover:underline"
         // Built from the row's own topic, never the one being listed: the
@@ -136,9 +136,9 @@ export function QuestionList({
             key={option}
             type="button"
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+              "rounded-control border px-2.5 py-1 text-[11px] font-semibold transition-colors",
               option === filter
-                ? "border-accent bg-accent text-white"
+                ? "border-accent bg-accent text-on-solid"
                 : "border-line bg-surface text-muted hover:text-ink",
             )}
             aria-pressed={option === filter}

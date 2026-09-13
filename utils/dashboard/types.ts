@@ -14,6 +14,9 @@ export interface TopicStats {
   wrongRows: number;
   indexedRows: number;
   marksEarned: number;
+  /** Questions that have been timed, and the total of those timings. */
+  timedQuestions: number;
+  timedTotalMs: number;
   totalFromSite: number | null;
   totalMarksFromSite: number | null;
   /** False when some of the topic's questions have never been seen. */

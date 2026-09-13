@@ -88,6 +88,27 @@ function furthestAnswered(
  * three in `stack` alone — so counting distinct questions against a row
  * denominator would strand a fully solved topic at N-2 of N forever.
  */
+/**
+ * Every timing in this topic, one per question.
+ *
+ * Deduplicated by question id before summing: GateOverflow 49487 fills three
+ * rows of `stack`, and counting its one timing three times would weight a
+ * duplicated question three times in the average.
+ */
+function timings(rows: TopicRowInput[], durations: Map<string, number | null>): number[] {
+  const seen = new Set<string>();
+  const found: number[] = [];
+
+  rows.forEach((row) => {
+    if (seen.has(row.goId)) return;
+    seen.add(row.goId);
+    const duration = durations.get(row.goId);
+    if (typeof duration === "number") found.push(duration);
+  });
+
+  return found;
+}
+
 export function computeTopicSummary(input: SummaryInputs): TopicSummary {
   const rowsInOrder = R.sortBy(R.prop("ordinal"), input.rows);
   const statusOf = (row: TopicRowInput): QuestionStatus =>
@@ -101,6 +122,7 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
   const firstTry = attempted.filter(
     (row) => input.firstVerdictByGoId.get(row.goId) === "correct",
   );
+  const timed = timings(rowsInOrder, input.durationByGoId);
 
   // Only rows seen on this topic's own pages can be navigated to: a borrowed
   // row's ordinal numbers a position in the topic it was seen under, so
@@ -128,6 +150,8 @@ export function computeTopicSummary(input: SummaryInputs): TopicSummary {
     correctRows: correct.length,
     wrongRows: attempted.length - correct.length,
     firstTryCorrectRows: firstTry.length,
+    timedQuestions: timed.length,
+    timedTotalMs: R.sum(timed),
     distinctSolved: R.uniq(R.pluck("goId", attempted)).length,
     totalFromSite: input.totalFromSite,
     indexedRows,
@@ -215,6 +239,7 @@ function toRowInput(row: RowRecord, borrowed: boolean): TopicRowInput {
 interface QuestionFacts {
   statusByGoId: Map<string, QuestionStatus>;
   firstVerdictByGoId: Map<string, Verdict | null>;
+  durationByGoId: Map<string, number | null>;
   lastAttemptByGoId: Map<string, number | null>;
 }
 
@@ -223,6 +248,9 @@ function factsFrom(questions: QuestionRecord[]): QuestionFacts {
     statusByGoId: new Map(questions.map((question) => [question.goId, question.status])),
     firstVerdictByGoId: new Map(
       questions.map((question) => [question.goId, question.firstVerdict]),
+    ),
+    durationByGoId: new Map(
+      questions.map((question) => [question.goId, question.lastDurationMs ?? null]),
     ),
     lastAttemptByGoId: new Map(
       questions.map((question) => [question.goId, question.lastAttemptAt]),
@@ -254,6 +282,7 @@ function summaryFor(
     rows,
     statusByGoId: facts.statusByGoId,
     firstVerdictByGoId: facts.firstVerdictByGoId,
+    durationByGoId: facts.durationByGoId,
     lastActivityAt: times.length ? Math.max(...times) : null,
   });
 }
