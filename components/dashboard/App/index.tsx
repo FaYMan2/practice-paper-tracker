@@ -14,8 +14,8 @@
 import "../theme.css";
 
 import { useEffect, useState } from "react";
-import { Database, Flame, LayoutGrid, Timer } from "lucide-react";
-import { useDashboard, useReview } from "../../../services/dashboard";
+import { Database, FileText, Flame, LayoutGrid, Timer } from "lucide-react";
+import { useDashboard, usePapers, useReview } from "../../../services/dashboard";
 import {
   DashboardTab,
   SubjectView,
@@ -39,6 +39,7 @@ import { DataTools } from "../DataTools";
 import { ThemeToggle } from "../ThemeToggle";
 import { EmptyState } from "../EmptyState";
 import { Overview } from "../Overview";
+import { Papers } from "../Papers";
 import { ReviewPanel } from "../ReviewPanel";
 import { SubjectDialog } from "../SubjectDialog";
 import { SubjectGrid } from "../SubjectGrid";
@@ -68,6 +69,7 @@ function tabFromHash(): string {
 export function App() {
   const { view, loading, repaired } = useDashboard();
   const { queue, loading: reviewLoading } = useReview();
+  const { papers, loading: papersLoading } = usePapers();
 
   const [tab, setTab] = useState<string>(tabFromHash);
   const [subjects, setSubjects] = useState<SubjectView>(SubjectView.Started);
@@ -130,6 +132,10 @@ export function App() {
               Review
               {queue.due.length > 0 ? <Badge tone="accent">{queue.due.length}</Badge> : null}
             </Tab>
+            <Tab value={DashboardTab.Papers}>
+              <FileText />
+              Papers
+            </Tab>
             <Tab value={DashboardTab.Weak}>
               <Flame />
               Weak areas
@@ -188,6 +194,15 @@ export function App() {
               // A fallback for items from a background that predates the field.
               subjectOf={subjectBySlug(view.groups)}
             />
+          </TabPanel>
+
+          <TabPanel value={DashboardTab.Papers}>
+            {/*
+              Its own section, not a row in Progress: a paper is a sitting, and
+              its score answers "what would I have got on the day" rather than
+              "how much have I covered".
+            */}
+            <Papers papers={papers} loading={papersLoading} view={view} />
           </TabPanel>
 
           <TabPanel value={DashboardTab.Weak}>

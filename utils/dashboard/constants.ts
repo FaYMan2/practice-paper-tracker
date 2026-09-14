@@ -26,6 +26,7 @@ export enum DashboardTab {
   Home = "home",
   Review = "review",
   Weak = "weak",
+  Papers = "papers",
   Backups = "backups",
 }
 
