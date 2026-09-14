@@ -2,6 +2,7 @@
 
 import * as R from "ramda";
 import { topicDisplayName } from "../format";
+import { isYearSlug } from "../url";
 import type { TopicSummary } from "../../types";
 import { UNGROUPED_KEY, UNGROUPED_LABEL } from "./constants";
 import { statsOf, sumStats } from "./stats";
@@ -46,7 +47,20 @@ function buildGroup(parent: TopicSummary | null, children: TopicSummary[]): Topi
  * child of a known one — the ISRO pair, General Aptitude — fall into one
  * trailing group rather than being dropped.
  */
-export function groupTopics(summaries: TopicSummary[]): TopicGroup[] {
+export function groupTopics(all: TopicSummary[]): TopicGroup[] {
+  /*
+   * A sat paper is not a topic.
+   *
+   * The content script records an answer under the slug of the page it was
+   * given on, so sitting `/gate-cse/gate-cse-2019` files answers under
+   * "gate-cse-2019" and the paper arrives here looking like a topic with no
+   * subject. Left in, it shows up under "Other topics" and, worse, its
+   * questions are counted a second time: the site labels each one with its real
+   * topic, cross-topic attribution has already credited that topic, and the
+   * overall total adds both. Papers have their own section.
+   */
+  const summaries = all.filter((summary) => !isYearSlug(summary.slug));
+
   const parentSlugs = new Set(R.filter(R.isNotNil, R.pluck("parentSlug", summaries)));
   const bySlug = new Map(summaries.map((summary) => [summary.slug, summary]));
 
