@@ -16,6 +16,7 @@ export * from "./DataTools";
 export * from "./EmptyState";
 export * from "./Legend";
 export * from "./Overview";
+export * from "./Papers";
 export * from "./ProgressBar";
 export * from "./QuestionList";
 export * from "./ResumeActions";

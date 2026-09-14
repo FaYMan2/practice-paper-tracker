@@ -8,6 +8,7 @@
 import type { MessageKind } from "../utils/messaging/constants";
 import type { Backup, ImportOutcome } from "../utils/backup/types";
 import type { ReviewQueue } from "../utils/review/types";
+import type { PaperDetail, PaperSummary } from "../utils/papers/types";
 import type { AttemptInput } from "./attempt";
 import type { DiagnosticRecord } from "./diagnostic";
 import type { QuestionStatus, QuestionType, Verdict } from "./question";
@@ -162,6 +163,21 @@ export interface GetTopicDetailMessage {
   slug: string;
 }
 
+/** Asks for every paper that has been opened, scored on its own answers. */
+export interface GetPapersMessage {
+  kind: MessageKind.GetPapers;
+}
+
+export interface GetPaperDetailMessage {
+  kind: MessageKind.GetPaperDetail;
+  slug: string;
+}
+
+export interface PapersOverview {
+  /** Newest paper first. */
+  papers: PaperSummary[];
+}
+
 export interface ReportHierarchyMessage {
   kind: MessageKind.ReportHierarchy;
   entries: TopicHierarchyEntry[];
@@ -213,6 +229,8 @@ export type Message =
   | GetTopicPagesMessage
   | SetStarMessage
   | GetTopicDetailMessage
+  | GetPapersMessage
+  | GetPaperDetailMessage
   | ReportHierarchyMessage
   | ReportDiagnosticMessage
   | RebuildAllMessage
@@ -258,6 +276,8 @@ export interface ResponseMap {
   [MessageKind.GetTopicPages]: TopicPages;
   [MessageKind.SetStar]: SetStarResponse;
   [MessageKind.GetTopicDetail]: TopicDetail;
+  [MessageKind.GetPapers]: PapersOverview;
+  [MessageKind.GetPaperDetail]: PaperDetail;
   [MessageKind.ReportHierarchy]: ReportHierarchyResponse;
   [MessageKind.ReportDiagnostic]: ReportDiagnosticResponse;
   [MessageKind.RebuildAll]: RebuildAllResponse;

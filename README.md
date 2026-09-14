@@ -85,6 +85,14 @@ There's no review mode: you answer on the real page against the site's own marki
 
 The schedule itself is stored nowhere. SM-2 is a deterministic fold over a question's attempts, so it's recomputed from the log whenever it's needed — the same way the pass/fail state is. Nothing to migrate, nothing extra in a backup, and no second copy that can disagree with what you actually answered.
 
+### Papers you sit
+
+Opening a year's paper on the site records it as a sitting rather than as practice. The **Papers** tab scores each one on its own answers: marks out of what the paper is worth, how many of its questions you actually sat, accuracy, and which subjects the marks came from.
+
+The distinction is the point. A question from the 2019 paper can be answered while sitting that paper, or later while practising the topic it belongs to, and only the first is a test result. Counting the second would let a score climb on its own as unrelated practice happened to cover the same questions. Nothing new is stored to tell them apart: an attempt already records the page it was given on.
+
+Everything else keeps counting them. The site labels each question with its topic, so sitting a paper moves that topic's progress, and a question missed in a paper enters the review rotation like any other. Only the score is paper-scoped.
+
 ### Weak areas, ranked honestly
 
 A **Weak areas** tab answers the question the progress tab cannot: not "how much have I covered" but "what should I do next". Every topic you have worked on, coloured by how often you get its questions right *first time*, and beneath it a list of what to revise, worst first.

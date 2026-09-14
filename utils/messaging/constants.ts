@@ -12,6 +12,8 @@ export enum MessageKind {
   GetSummaries = "getSummaries",
   GetQuestionMarks = "getQuestionMarks",
   GetTopicDetail = "getTopicDetail",
+  GetPapers = "getPapers",
+  GetPaperDetail = "getPaperDetail",
   GetDashboard = "getDashboard",
   GetTopicPages = "getTopicPages",
   SetStar = "setStar",

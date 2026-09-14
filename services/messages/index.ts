@@ -12,6 +12,7 @@ import { exportBackup, importBackup } from "./backup";
 import { reviewQueue } from "./review";
 import { topicPages } from "./coverage";
 import { topicDetail } from "./details";
+import { paperDetail, paperOverview } from "./papers";
 import { reportDiagnostic } from "./diagnostics";
 import { recordHierarchy } from "./hierarchy";
 import { rebuildAll } from "./maintenance";
@@ -47,6 +48,12 @@ export async function handleMessage(message: Message): Promise<unknown> {
 
     case MessageKind.GetTopicDetail:
       return await topicDetail(message.slug);
+
+    case MessageKind.GetPapers:
+      return await paperOverview();
+
+    case MessageKind.GetPaperDetail:
+      return await paperDetail(message.slug);
 
     case MessageKind.ReportHierarchy:
       return await recordHierarchy(message.entries);

@@ -6,6 +6,7 @@ import {
   Overview,
   QuestionList,
   ReviewPanel,
+  Papers,
   SubjectGrid,
   TopicTable,
   WeakAreas,
@@ -24,6 +25,7 @@ import type {
 import { BackupRejection } from "../utils/backup";
 import type { Backup, ImportOutcome } from "../utils/backup";
 import type { ReviewItem, ReviewQueue } from "../utils/review";
+import type { PaperSummary } from "../utils/papers";
 import { CHILD, SUBJECT, question, summary, viewOf } from "./factories";
 
 beforeEach(() => {
@@ -226,6 +228,53 @@ describe("WeakAreas", () => {
     render(<WeakAreas view={viewOf([summary("stack", { indexedRows: 20 })])} onOpen={() => undefined} />);
 
     expect(screen.getByText(/Nothing to diagnose yet/)).toBeTruthy();
+  });
+});
+
+describe("Papers", () => {
+  const paper = (over: Partial<PaperSummary["score"]> = {}): PaperSummary => ({
+    slug: "gate-cse-2019",
+    label: "GATE CSE 2019",
+    score: {
+      total: 65,
+      indexed: 65,
+      attempted: 40,
+      correct: 28,
+      wrong: 12,
+      marksEarned: 44,
+      marksAvailable: 100,
+      accuracy: 0.7,
+      lastSatAt: Date.UTC(2026, 7, 18),
+      metElsewhere: 3,
+      ...over,
+    },
+  });
+
+  it("scores a paper out of what the paper is worth", () => {
+    render(<Papers papers={[paper()]} loading={false} view={viewOf([SUBJECT, CHILD])} />);
+
+    expect(screen.getByText("44 / 100")).toBeTruthy();
+    expect(screen.getByText("40 / 65")).toBeTruthy();
+    expect(screen.getByText("70%")).toBeTruthy();
+  });
+
+  it("says a paper has not been sat rather than scoring it zero", () => {
+    // Opened and read is a real state, and it is the way back in.
+    render(
+      <Papers
+        papers={[paper({ attempted: 0, correct: 0, wrong: 0, marksEarned: 0, accuracy: null, lastSatAt: null })]}
+        loading={false}
+        view={viewOf([SUBJECT, CHILD])}
+      />,
+    );
+
+    expect(screen.getByText(/not sat yet/)).toBeTruthy();
+  });
+
+  it("asks for a paper rather than charting none", () => {
+    render(<Papers papers={[]} loading={false} view={viewOf([SUBJECT, CHILD])} />);
+
+    expect(screen.getByText(/No papers opened yet/)).toBeTruthy();
   });
 });
 
